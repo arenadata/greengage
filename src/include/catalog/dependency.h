@@ -277,4 +277,6 @@ extern void checkDependencies(const ObjectAddresses *objects,
 							  const char *msg,
 							  const char *hint);
 
+extern void DropObjectById(const ObjectAddress *object);
+
 #endif							/* DEPENDENCY_H */

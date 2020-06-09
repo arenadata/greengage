@@ -561,27 +561,6 @@ PLTemplateExists(const char *languageName)
 	return (find_language_template(languageName) != NULL);
 }
 
-/*
- * Guts of language dropping.
- */
-void
-DropProceduralLanguageById(Oid langOid)
-{
-	Relation	rel;
-	HeapTuple	langTup;
-
-	rel = table_open(LanguageRelationId, RowExclusiveLock);
-
-	langTup = SearchSysCache1(LANGOID, ObjectIdGetDatum(langOid));
-	if (!HeapTupleIsValid(langTup)) /* should not happen */
-		elog(ERROR, "cache lookup failed for language %u", langOid);
-
-	CatalogTupleDelete(rel, &langTup->t_self);
-
-	ReleaseSysCache(langTup);
-
-	table_close(rel, RowExclusiveLock);
-}
 
 /*
  * get_language_oid - given a language name, look up the OID

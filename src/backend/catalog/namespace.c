@@ -4187,7 +4187,13 @@ InitTempTableNamespace(void)
 	if (OidIsValid(namespaceId))
 	{
 		RemoveTempRelations(namespaceId);
-		RemoveSchemaById(namespaceId);
+		ObjectAddress object =
+		{
+			.classId = NamespaceRelationId,
+			.objectId = namespaceId,
+			.objectSubId = 0
+		};
+		DropObjectById(&object);
 		elog(DEBUG1, "Remove schema entry %u from pg_namespace",
 			 namespaceId);
 		namespaceId = InvalidOid;
@@ -4220,7 +4226,13 @@ InitTempTableNamespace(void)
 	toastspaceId = get_namespace_oid(namespaceName, true);
 	if (OidIsValid(toastspaceId))
 	{
-		RemoveSchemaById(toastspaceId);
+		ObjectAddress object =
+		{
+			.classId = NamespaceRelationId,
+			.objectId = toastspaceId,
+			.objectSubId = 0
+		};
+		DropObjectById(&object);
 		elog(DEBUG1, "Remove schema entry %u from pg_namespace",
 			 namespaceId);
 		toastspaceId = InvalidOid;
@@ -4317,8 +4329,16 @@ DropTempTableNamespaceEntryForResetSession(Oid namespaceOid, Oid toastNamespaceO
 	if (SearchSysCacheExists1(NAMESPACEOID,
 							  ObjectIdGetDatum(namespaceOid)))
 	{
-		RemoveSchemaById(namespaceOid);
-		RemoveSchemaById(toastNamespaceOid);
+		ObjectAddress object =
+		{
+			.classId = NamespaceRelationId,
+			.objectId = namespaceOid,
+			.objectSubId = 0
+		};
+		DropObjectById(&object);
+
+		object.objectId = toastNamespaceOid;
+		DropObjectById(&object);
 	}
 
 	CommitTransactionCommand();

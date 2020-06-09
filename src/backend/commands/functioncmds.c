@@ -2207,33 +2207,6 @@ get_cast_oid(Oid sourcetypeid, Oid targettypeid, bool missing_ok)
 	return oid;
 }
 
-void
-DropCastById(Oid castOid)
-{
-	Relation	relation;
-	ScanKeyData scankey;
-	SysScanDesc scan;
-	HeapTuple	tuple;
-
-	relation = table_open(CastRelationId, RowExclusiveLock);
-
-	ScanKeyInit(&scankey,
-				Anum_pg_cast_oid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(castOid));
-	scan = systable_beginscan(relation, CastOidIndexId, true,
-							  NULL, 1, &scankey);
-
-	tuple = systable_getnext(scan);
-	if (!HeapTupleIsValid(tuple))
-		elog(ERROR, "could not find tuple for cast %u", castOid);
-	CatalogTupleDelete(relation, &tuple->t_self);
-
-	systable_endscan(scan);
-	table_close(relation, RowExclusiveLock);
-}
-
-
 static void
 check_transform_function(Form_pg_proc procstruct)
 {
@@ -2519,38 +2492,6 @@ get_transform_oid(Oid type_id, Oid lang_id, bool missing_ok)
 						format_type_be(type_id),
 						get_language_name(lang_id, false))));
 	return oid;
-}
-
-
-void
-DropTransformById(Oid transformOid)
-{
-	Relation	relation;
-	ScanKeyData scankey;
-	SysScanDesc scan;
-	HeapTuple	tuple;
-
-	relation = table_open(TransformRelationId, RowExclusiveLock);
-
-	ScanKeyInit(&scankey,
-				Anum_pg_transform_oid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(transformOid));
-	scan = systable_beginscan(relation, TransformOidIndexId, true,
-							  NULL, 1, &scankey);
-
-	tuple = systable_getnext(scan);
-	if (!HeapTupleIsValid(tuple))
-		elog(ERROR, "could not find tuple for transform %u", transformOid);
-	CatalogTupleDelete(relation, &tuple->t_self);
-
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		MetaTrackDropObject(TransformRelationId, transformOid);
-	}
-
-	systable_endscan(scan);
-	table_close(relation, RowExclusiveLock);
 }
 
 

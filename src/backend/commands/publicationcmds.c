@@ -476,36 +476,6 @@ AlterPublication(AlterPublicationStmt *stmt)
 }
 
 /*
- * Remove the publication by mapping OID.
- */
-void
-RemovePublicationById(Oid pubid)
-{
-	Relation	rel;
-	HeapTuple	tup;
-	Form_pg_publication pubform;
-
-	rel = table_open(PublicationRelationId, RowExclusiveLock);
-
-	tup = SearchSysCache1(PUBLICATIONOID, ObjectIdGetDatum(pubid));
-
-	if (!HeapTupleIsValid(tup))
-		elog(ERROR, "cache lookup failed for publication %u", pubid);
-
-	pubform = (Form_pg_publication) GETSTRUCT(tup);
-
-	/* Invalidate relcache so that publication info is rebuilt. */
-	if (pubform->puballtables)
-		CacheInvalidateRelcacheAll();
-
-	CatalogTupleDelete(rel, &tup->t_self);
-
-	ReleaseSysCache(tup);
-
-	table_close(rel, RowExclusiveLock);
-}
-
-/*
  * Remove relation from publication by mapping OID.
  */
 void
