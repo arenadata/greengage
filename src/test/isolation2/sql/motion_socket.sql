@@ -45,8 +45,8 @@ else:
 res = plpy.execute("SELECT address FROM gp_segment_configuration;", 1)
 hostip = socket.gethostbyname(res[0]['address'])
 
-res = plpy.execute("SELECT current_setting('gp_session_id');", 1)
-qd_backend_conn_id = res[0]['current_setting']
+res = plpy.execute("SELECT pid from gp_backend_info();")
+pids_to_check = [r['pid'] for r in res]
 
 for process in psutil.process_iter():
     # We iterate through all backends related to connection id
@@ -62,11 +62,11 @@ for process in psutil.process_iter():
                 and conn.laddr[0] == hostip:   # Compare source ip of conn
                     motion_socket_count += 1
 
-            if motion_socket_count != expected_socket_count_per_segment:
-                plpy.error('Expected {} motion sockets but found {}. '\
-                'For backend process {}. connections= {}'\
-                .format(expected_socket_count_per_segment, process,\
-                motion_socket_count, process.connections()))
+    if motion_socket_count != expected_socket_count_per_segment:
+        plpy.error('Expected {} motion sockets but found {}. '\
+        'For backend process {}. connections= {}'\
+        .format(expected_socket_count_per_segment, process,\
+        motion_socket_count, process.connections()))
 
 
 $$ LANGUAGE plpythonu EXECUTE ON MASTER;
