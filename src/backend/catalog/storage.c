@@ -114,6 +114,7 @@ RelationCreateStorage(RelFileNode rnode, char relpersistence, char relstorage)
 	}
 
 	srel = smgropen(rnode, backend);
+	srel->smgr_which = relstorage;
 	smgrcreate(srel, MAIN_FORKNUM, false);
 
 	if (needs_wal)
@@ -372,6 +373,7 @@ smgrDoPendingDeletes(bool isCommit)
 				srel = smgropen(pending->relnode.node,
 					pending->relnode.isTempRelation ?
 					TempRelBackendId : InvalidBackendId);
+				srel->smgr_which = 0;
 
 				/* allocate the initial array, or extend it, if needed */
 				if (maxrels == 0)
@@ -541,6 +543,7 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		SMgrRelation reln;
 
 		reln = smgropen(xlrec->rnode, InvalidBackendId);
+		reln->smgr_which = 0;
 		smgrcreate(reln, xlrec->forkNum, true);
 	}
 	else if (info == XLOG_SMGR_CREATE_PDL)
