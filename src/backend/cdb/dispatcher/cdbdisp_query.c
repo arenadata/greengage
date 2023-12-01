@@ -886,6 +886,7 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 {
 	const char *command = pQueryParms->strCommand;
 	int			command_len;
+	int			is_hs_dispatch = IS_HOT_STANDBY_QD() ? 1 : 0;
 	const char *querytree = pQueryParms->serializedQuerytree;
 	int			querytree_len = pQueryParms->serializedQuerytreelen;
 	const char *plantree = pQueryParms->serializedPlantree;
@@ -945,6 +946,7 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		sizeof(outerUserId) /* outerUserIsSuper */ +
 		sizeof(currentUserId) +
 		sizeof(n32) * 2 /* currentStatementStartTimestamp */ +
+		sizeof(is_hs_dispatch) +
 		sizeof(command_len) +
 		sizeof(querytree_len) +
 		sizeof(plantree_len) +
@@ -1003,6 +1005,10 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	n32 = htonl(n32);
 	memcpy(pos, &n32, sizeof(n32));
 	pos += sizeof(n32);
+
+	tmp = htonl(is_hs_dispatch);
+	memcpy(pos, &tmp, sizeof(is_hs_dispatch));
+	pos += sizeof(is_hs_dispatch);
 
 	tmp = htonl(command_len);
 	memcpy(pos, &tmp, sizeof(command_len));

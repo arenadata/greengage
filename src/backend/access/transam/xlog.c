@@ -8079,6 +8079,8 @@ StartupXLOG(void)
 	 */
 	InRecovery = false;
 
+	SIMPLE_FAULT_INJECTOR("out_of_recovery_in_startupxlog");
+
 	/*
 	 * If we are a standby with contentid -1 and undergoing promotion,
 	 * update ourselves as the new master in catalog.  This does not
