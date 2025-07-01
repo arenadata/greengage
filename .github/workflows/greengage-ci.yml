@@ -17,7 +17,9 @@ jobs:
       matrix:
         target_os: [ubuntu, centos]
     permissions:
-      packages: write  # Required for GHCR access
+      contents: read  # Explicit for default behavior
+      packages: write # Required for GHCR access
+      actions: write  # Required for artifact upload
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@main
     with:
       version: 6
@@ -31,6 +33,10 @@ jobs:
       fail-fast: true
       matrix:
         target_os: [ubuntu, centos]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for artifact upload
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@main
     with:
       version: 6
@@ -44,6 +50,10 @@ jobs:
       fail-fast: true
       matrix:
         target_os: [ubuntu, centos]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for artifact upload
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@main
     with:
       version: 6
@@ -57,6 +67,10 @@ jobs:
       fail-fast: true
       matrix:
         target_os: [ubuntu, centos]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for artifact upload
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@main
     with:
       version: 6
@@ -70,6 +84,10 @@ jobs:
       fail-fast: true
       matrix:
         target_os: [ubuntu, centos]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for artifact upload
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@main
     with:
       version: 6
@@ -84,7 +102,9 @@ jobs:
       matrix:
         target_os: [ubuntu, centos]
     permissions:
-      packages: write  # Required for GHCR access
+      contents: read  # Explicit for default behavior
+      packages: write # Required for GHCR access
+      actions: write  # Required for artifact upload
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@main
     with:
       version: 6
