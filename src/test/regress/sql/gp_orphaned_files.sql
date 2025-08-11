@@ -280,6 +280,32 @@ select 1 from gp_dist_random('gp_id');
 -- Rollback the transaction to make it possible to run queries after the error
 rollback;
 
+-- The MPP operation can be cancelled on some segments, because the cancel
+-- request can come faster than the segfault happens on these segments. So we
+-- should reset the qe_exec_finished inject fault explicitly to avoid segfaults.
+-- Segments, where the segfault happended, are restarting at this moment. We are
+-- waiting for the segments to be ready to accept connections.
+do $$
+declare
+  v_dbid gp_segment_configuration.dbid%type;
+begin
+  for v_dbid in (
+    select dbid from gp_segment_configuration
+    where role = 'p' and content != -1
+  ) loop
+    for i in 1..120 loop
+      begin
+        perform gp_inject_fault('qe_exec_finished', 'reset', v_dbid);
+      exception
+        when others then
+          perform pg_sleep(1);
+          continue;
+      end;
+    end loop; 
+  end loop;
+end
+$$;
+
 select force_mirrors_to_catch_up();
 
 -- Check that the tables files don't exist on the segments
