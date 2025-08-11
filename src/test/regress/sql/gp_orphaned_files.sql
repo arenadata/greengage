@@ -296,6 +296,7 @@ begin
     for i in 1..120 loop
       begin
         perform gp_inject_fault('qe_exec_finished', 'reset', v_dbid);
+        perform gp_inject_fault('checkpoint', 'reset', v_dbid);
       exception
         when others then
           perform pg_sleep(1);
@@ -306,6 +307,7 @@ begin
 end
 $$;
 
+checkpoint;
 select force_mirrors_to_catch_up();
 
 -- Check that the tables files don't exist on the segments
