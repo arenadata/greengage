@@ -329,10 +329,10 @@ begin
       begin
         perform gp_inject_fault('qe_exec_finished', 'reset', v_dbid);
         perform gp_inject_fault('checkpoint', 'reset', v_dbid);
+        exit;
       exception
         when others then
           perform pg_sleep(1);
-          continue;
       end;
     end loop; 
   end loop;
