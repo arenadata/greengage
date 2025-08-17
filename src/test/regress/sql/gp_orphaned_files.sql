@@ -244,6 +244,16 @@ begin
 end
 $$ language plpgsql;
 
+create or replace function resetInjectFaults(p_contentid int) returns void as
+$$
+begin
+  perform gp_inject_fault('qe_exec_finished', 'reset', dbid),
+          gp_inject_fault('checkpoint',       'reset', dbid)
+  from gp_segment_configuration
+  where role = 'p' and content = p_contentid;
+end
+$$ language plpgsql;
+
 -- Test case 3.1
 -- Segfault on all segments
 checkpoint;
@@ -280,19 +290,24 @@ select 1 from gp_dist_random('gp_id');
 -- Rollback the transaction to make it possible to run queries after the error
 rollback;
 
+-- start_ignore
 -- The MPP operation can be cancelled on some segments, because the cancel
 -- request can come faster than the segfault happens on these segments. So we
 -- should reset the qe_exec_finished inject fault explicitly to avoid segfaults.
--- Segments, where the segfault happended, are restarting at this moment. We are
--- waiting for the segments to be ready to accept connections.
-\! psql regression -c "select gp_inject_fault('qe_exec_finished', 'reset', dbid), gp_inject_fault('checkpoint', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = 0;" > /dev/null 2>/dev/null
-\! psql regression -c "select gp_inject_fault('qe_exec_finished', 'reset', dbid), gp_inject_fault('checkpoint', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = 1;" > /dev/null 2>/dev/null
-\! psql regression -c "select gp_inject_fault('qe_exec_finished', 'reset', dbid), gp_inject_fault('checkpoint', 'reset', dbid) from gp_segment_configuration where role = 'p' and content = 2;" > /dev/null 2>/dev/null
-\! psql regression -c "select 1 from gp_dist_random('gp_id');" > /dev/null 2> /dev/null
-\! gprecoverseg -aq  > /dev/null 2> /dev/null
-\! gprecoverseg -aqr > /dev/null 2> /dev/null
+select resetInjectFaults(0);
+select resetInjectFaults(1);
+select resetInjectFaults(2);
+-- Segments, where the segfault happended, are restarting at this moment. Wait
+-- for the segments to be ready to accept connections. Sometimes we can get the
+-- "FTS detected connection lost" error, so ignore the output.
+select 1 from gp_dist_random('gp_id');
+-- Recover if failover happened
+\! gprecoverseg -aq
+\! gprecoverseg -aqr
+-- end_ignore
 
-select force_mirrors_to_catch_up();
+-- Make a checkpoint to remove orphaned files from segments where segfault did
+-- not happen
 checkpoint;
 select force_mirrors_to_catch_up();
 
@@ -344,11 +359,14 @@ select 1 from gp_dist_random('gp_id');
 -- Rollback the transaction to make it possible to run queries after the error
 rollback;
 
-\! psql regression -c "select 1 from gp_dist_random('gp_id');" > /dev/null 2> /dev/null
-\! gprecoverseg -aq  > /dev/null 2> /dev/null
-\! gprecoverseg -aqr > /dev/null 2> /dev/null
-
-select force_mirrors_to_catch_up();
+-- start_ignore
+-- The segment, where the segfault happended, is restarting at this moment. Wait
+-- for this segment to be ready to accept connections.
+select 1 from gp_dist_random('gp_id');
+-- Recover if failover happened
+\! gprecoverseg -aq
+\! gprecoverseg -aqr
+-- end_ignore
 
 -- Make a checkpoint to remove orphaned files from segments where segfault did
 -- not happen
@@ -356,6 +374,8 @@ select gp_inject_fault_infinite('checkpoint', 'reset', dbid)
   from gp_segment_configuration
  where role = 'p' and content > -1;
 checkpoint;
+
+select force_mirrors_to_catch_up();
 
 -- Check that the tables files don't exist on the segments
 :check_files
@@ -370,6 +390,7 @@ table t_sub2;
 \unset check_files
 drop table t_top, t_sub1, t_sub2;
 drop function createTables();
+drop function resetInjectFaults(p_contentid int);
 drop function getTableSegFiles(t regclass, out gp_contentid smallint, out filepath text);
 -- start_ignore
 \! gpconfig -r gp_gang_creation_retry_timer --skipvalidation --masteronly
