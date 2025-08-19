@@ -254,6 +254,9 @@ begin
 end
 $$ language plpgsql;
 
+-- Skip FTS probes
+select gp_inject_fault_infinite('fts_probe', 'skip', 1);
+
 -- Test case 3.1
 -- Segfault on all segments
 checkpoint;
@@ -297,19 +300,13 @@ rollback;
 select resetInjectFaults(0);
 select resetInjectFaults(1);
 select resetInjectFaults(2);
--- Segments, where the segfault happended, are restarting at this moment. Wait
--- for the segments to be ready to accept connections. Sometimes we can get the
--- "FTS detected connection lost" error, so ignore the output.
-select 1 from gp_dist_random('gp_id');
--- Recover if failover happened
-\! gprecoverseg -aq
-\! gprecoverseg -aqr
 -- end_ignore
+
+select force_mirrors_to_catch_up();
 
 -- Make a checkpoint to remove orphaned files from segments where segfault did
 -- not happen
 checkpoint;
-select force_mirrors_to_catch_up();
 
 -- Check that the tables files don't exist on the segments
 :check_files
@@ -359,14 +356,7 @@ select 1 from gp_dist_random('gp_id');
 -- Rollback the transaction to make it possible to run queries after the error
 rollback;
 
--- start_ignore
--- The segment, where the segfault happended, is restarting at this moment. Wait
--- for this segment to be ready to accept connections.
-select 1 from gp_dist_random('gp_id');
--- Recover if failover happened
-\! gprecoverseg -aq
-\! gprecoverseg -aqr
--- end_ignore
+select force_mirrors_to_catch_up();
 
 -- Make a checkpoint to remove orphaned files from segments where segfault did
 -- not happen
@@ -375,8 +365,6 @@ select gp_inject_fault_infinite('checkpoint', 'reset', dbid)
  where role = 'p' and content > -1;
 checkpoint;
 
-select force_mirrors_to_catch_up();
-
 -- Check that the tables files don't exist on the segments
 :check_files
 
@@ -384,6 +372,9 @@ select force_mirrors_to_catch_up();
 -- were created in subtransactions
 table t_sub1;
 table t_sub2;
+
+
+select gp_inject_fault_infinite('fts_probe', 'reset', 1);
 
 
 -- Clean up

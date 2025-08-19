@@ -270,6 +270,13 @@ begin
   where role = 'p' and content = p_contentid;
 end
 $$ language plpgsql;
+-- Skip FTS probes
+select gp_inject_fault_infinite('fts_probe', 'skip', 1);
+ gp_inject_fault_infinite 
+--------------------------
+ Success:
+(1 row)
+
 -- Test case 3.1
 -- Segfault on all segments
 checkpoint;
@@ -321,15 +328,15 @@ ERROR:  Error on receive from seg0 slice1 127.0.0.1:6002 pid=45456: server close
 	before or while processing the request.
 -- Rollback the transaction to make it possible to run queries after the error
 rollback;
--- Make a checkpoint to remove orphaned files from segments where segfault did
--- not happen
-checkpoint;
 select force_mirrors_to_catch_up();
  force_mirrors_to_catch_up 
 ---------------------------
  
 (1 row)
 
+-- Make a checkpoint to remove orphaned files from segments where segfault did
+-- not happen
+checkpoint;
 -- Check that the tables files don't exist on the segments
 :check_files
 0
@@ -401,6 +408,12 @@ ERROR:  Error on receive from seg1 slice1 127.0.0.1:6003 pid=64482: server close
 	before or while processing the request.
 -- Rollback the transaction to make it possible to run queries after the error
 rollback;
+select force_mirrors_to_catch_up();
+ force_mirrors_to_catch_up 
+---------------------------
+ 
+(1 row)
+
 -- Make a checkpoint to remove orphaned files from segments where segfault did
 -- not happen
 select gp_inject_fault_infinite('checkpoint', 'reset', dbid)
@@ -414,12 +427,6 @@ select gp_inject_fault_infinite('checkpoint', 'reset', dbid)
 (3 rows)
 
 checkpoint;
-select force_mirrors_to_catch_up();
- force_mirrors_to_catch_up 
----------------------------
- 
-(1 row)
-
 -- Check that the tables files don't exist on the segments
 :check_files
 0
@@ -439,6 +446,12 @@ table t_sub2;
  i 
 ---
 (0 rows)
+
+select gp_inject_fault_infinite('fts_probe', 'reset', 1);
+ gp_inject_fault_infinite 
+--------------------------
+ Success:
+(1 row)
 
 -- Clean up
 \unset check_files
