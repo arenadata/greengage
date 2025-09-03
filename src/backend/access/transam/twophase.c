@@ -1273,39 +1273,57 @@ RegisterTwoPhaseRecord(TwoPhaseRmgrId rmid, uint16 info,
 }
 
 /*
- * Confirms an xid is prepared, during recovery
+ * Unlike 7.x which reads from files, 6.x checks the hash table
+ * crashRecoverPostCheckpointPreparedTransactions_map_ht for the XID.
+ * If found, reads the actual 2PC data from WAL to validate.
  */
 bool
 StandbyTransactionIdIsPrepared(TransactionId xid)
 {
-	/*
-	 * XXX: Not implemented in GPDB. We don't use the two-phase state
-	 * files, so we cannot use ReadTwoPhaseFile() here. Fortunately, this
-	 * isn't needed until we try to use Hot Standby.
-	 */
-	elog(ERROR, "Hot Standby not supported");
-#if 0
-	char	   *buf;
+	prpt_map *entry;
+	XLogReaderState *xlogreader;
+	XLogRecord *record;
+	char *errormsg;
+	bool found = false;
 	TwoPhaseFileHeader *hdr;
-	bool		result;
 
 	Assert(TransactionIdIsValid(xid));
 
 	if (max_prepared_xacts <= 0)
-		return false;			/* nothing to do */
+		return false; /* nothing to do */
 
-	/* Read and validate file */
-	buf = ReadTwoPhaseFile(xid, false);
-	if (buf == NULL)
+	/* First check if we have this XID in our hash table */
+	if (crashRecoverPostCheckpointPreparedTransactions_map_ht == NULL)
 		return false;
 
-	/* Check header also */
-	hdr = (TwoPhaseFileHeader *) buf;
-	result = TransactionIdEquals(hdr->xid, xid);
-	pfree(buf);
+	entry = (prpt_map *) hash_search(
+		crashRecoverPostCheckpointPreparedTransactions_map_ht, &xid, HASH_FIND,
+		&found);
 
-	return result;
-#endif
+	if (!found || entry->xlogrecptr == InvalidXLogRecPtr)
+		return false;
+
+	/* Read the actual 2PC data from WAL to validate it's really prepared */
+	xlogreader = XLogReaderAllocate(&read_local_xlog_page, NULL);
+	if (!xlogreader)
+		ereport(
+			ERROR,
+			(errcode(ERRCODE_OUT_OF_MEMORY), errmsg("out of memory"),
+			 errdetail("Failed while allocating an XLog reading processor.")));
+
+	record = XLogReadRecord(xlogreader, entry->xlogrecptr, &errormsg);
+	if (record == NULL)
+	{
+		XLogReaderFree(xlogreader);
+		return false; /* WAL record not accessible, assume not prepared */
+	}
+
+	/* Validate the header to ensure this is actually a prepare record for our XID */
+	hdr = (TwoPhaseFileHeader *) XLogRecGetData(record);
+	found = TransactionIdEquals(hdr->xid, xid);
+
+	XLogReaderFree(xlogreader);
+	return found;
 }
 
 
@@ -1869,21 +1887,120 @@ GetOldestPreparedTransaction()
 }
 
 /*
- * StandbyRecoverPreparedTransactions
- *
- * Scan the pg_twophase directory and setup all the required information to
- * allow standby queries to treat prepared transactions as still active.
- * This is never called at the end of recovery - we use
- * RecoverPreparedTransactions() at that point.
- *
- * Currently we simply call SubTransSetParent() for any subxids of prepared
- * transactions. If overwriteOK is true, it's OK if some XIDs have already
- * been marked in pg_subtrans.
+ * Unlike 7.x which iterates TwoPhaseState->prepXacts, 6.x iterates
+ * the hash table and processes each prepared transaction from WAL.
+ * This sets up subtrans relationships for standby query processing.
  */
 void
 StandbyRecoverPreparedTransactions(bool overwriteOK)
 {
-	elog(ERROR, "Hot Standby not supported");
+	prpt_map *entry;
+	XLogRecPtr xlogrecptr;
+	XLogReaderState *xlogreader;
+	XLogRecord *record;
+	char *errormsg;
+	HASH_SEQ_STATUS hsStatus;
+	MemoryContext oldcontext = CurrentMemoryContext;
+
+	if (crashRecoverPostCheckpointPreparedTransactions_map_ht == NULL)
+		return; /* No prepared transactions to recover */
+
+	/* Allocate XLog reader once for all transactions */
+	xlogreader = XLogReaderAllocate(&read_local_xlog_page, NULL);
+	if (!xlogreader)
+		ereport(
+			ERROR,
+			(errcode(ERRCODE_OUT_OF_MEMORY), errmsg("out of memory"),
+			 errdetail("Failed while allocating an XLog reading processor.")));
+
+	/* Iterate through all entries in the hash table */
+	hash_seq_init(&hsStatus,
+				  crashRecoverPostCheckpointPreparedTransactions_map_ht);
+
+	while ((entry = (prpt_map *) hash_seq_search(&hsStatus)) != NULL)
+	{
+		TransactionId xid = entry->xid;
+		TwoPhaseFileHeader *hdr;
+		TransactionId *subxids;
+		char *buf;
+		char *bufptr;
+		int i;
+		bool read_failed;
+
+		/* Read the 2PC data from WAL */
+		int savedInterruptHoldoffCount = InterruptHoldoffCount;
+
+		xlogrecptr = entry->xlogrecptr;
+
+		if (xlogrecptr == InvalidXLogRecPtr)
+			continue;
+
+		read_failed = false;
+
+		PG_TRY();
+		{
+			record = XLogReadRecord(xlogreader, xlogrecptr, &errormsg);
+		}
+		PG_CATCH();
+		{
+			MemoryContextSwitchTo(oldcontext);
+			InterruptHoldoffCount = savedInterruptHoldoffCount;
+			FlushErrorState();
+			elog(
+				WARNING,
+				"Failed to read WAL record for prepared transaction %u at %X/%X",
+				xid, (uint32) (xlogrecptr >> 32), (uint32) xlogrecptr);
+			read_failed = true;
+		}
+		PG_END_TRY();
+
+		/* Skip this transaction */
+		if (read_failed)
+			continue;
+
+		if (record == NULL)
+		{
+			if (errormsg)
+				elog(
+					WARNING,
+					"could not read WAL record for prepared transaction %u: %s",
+					xid, errormsg);
+			continue; /* Skip this transaction */
+		}
+
+		buf = XLogRecGetData(record);
+		hdr = (TwoPhaseFileHeader *) buf;
+
+		/* Skip if this transaction has been committed/aborted already */
+		if (TransactionIdDidCommit(xid) || TransactionIdDidAbort(xid))
+			continue;
+
+		/* Process subtransactions to set up parent relationships */
+		bufptr = buf + MAXALIGN(sizeof(TwoPhaseFileHeader));
+
+		/* In 6.x, GID is stored in fixed-size gid field, not with gidlen */
+		/* Skip directly to subxids, which come after the header */
+		subxids = (TransactionId *) bufptr;
+
+		/*
+		 * Reconstruct subtrans state for the transaction.
+		 * We link all subtransactions directly to the top-level XID.
+		 * The overwriteOK parameter allows us to handle cases where
+		 * SubTransSetParent has been called before.
+		 */
+		for (i = 0; i < hdr->nsubxacts; i++)
+		{
+			SubTransSetParent(subxids[i], xid, overwriteOK);
+		}
+
+		ereport(
+			DEBUG1,
+			(errmsg(
+				"standby recovered prepared transaction %u with %d subtransactions",
+				xid, hdr->nsubxacts)));
+	}
+
+	XLogReaderFree(xlogreader);
 }
 
 /*
