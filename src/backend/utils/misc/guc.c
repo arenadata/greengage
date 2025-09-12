@@ -1504,7 +1504,6 @@ static struct config_bool ConfigureNamesBool[] =
 		{"hot_standby", PGC_POSTMASTER, REPLICATION_STANDBY,
 			gettext_noop("Allows connections and queries during recovery."),
 			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
 		&EnableHotStandby,
 		false,
@@ -3533,7 +3532,6 @@ static struct config_enum ConfigureNamesEnum[] =
 		{"synchronous_commit", PGC_USERSET, WAL_SETTINGS,
 			gettext_noop("Sets the current transaction's synchronization level."),
 			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
 		&synchronous_commit,
 		SYNCHRONOUS_COMMIT_ON, synchronous_commit_options,
