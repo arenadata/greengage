@@ -3578,10 +3578,9 @@ static struct config_enum ConfigureNamesEnum[] =
 		{"wal_level", PGC_POSTMASTER, WAL_SETTINGS,
 			gettext_noop("Set the level of information written to the WAL."),
 			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
 		&wal_level,
-		WAL_LEVEL_ARCHIVE, wal_level_options,
+		WAL_LEVEL_HOT_STANDBY, wal_level_options,
 		NULL, NULL, NULL
 	},
 
