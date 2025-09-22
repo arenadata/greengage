@@ -601,6 +601,13 @@ errfinish(int dummy __attribute__((unused)),...)
 		 econtext = econtext->previous)
 		(*econtext->callback) (econtext->arg);
 
+	/* Can't handle an OOM. */
+	if (edata->sqlerrcode == ERRCODE_OUT_OF_MEMORY ||
+		edata->sqlerrcode == ERRCODE_GP_MEMPROT_KILL)
+	{
+		elevel = FATAL;
+	}
+
 	/*
 	 * If ERROR (not more nor less) we pass it off to the current handler.
 	 * Printing it and popping the stack is the responsibility of the handler.
