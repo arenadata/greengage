@@ -465,6 +465,7 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 	if (IsA(node, SeqScan)
 		||IsA(node, ShareInputScan)
 		||IsA(node, ExternalScan)
+		||(IsA(node, FunctionScan) && ((Plan *)node)->flow->locustype != ctx->currentPlanFlow->locustype)
 		||(IsA(node, SubqueryScan) && IsA(((SubqueryScan *) node)->subplan, ModifyTable))
 		||IsA(node,ModifyTable))
 	{
@@ -480,9 +481,9 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		 * else 'pg_catalog.' end) FROM pg_proc p;
 		 **/
 		Assert(scanPlan->flow);
-		if (scanPlan->flow->locustype == CdbLocusType_Entry)
+		if (scanPlan->flow->locustype == CdbLocusType_Entry
+		   && ctx->currentPlanFlow->locustype == CdbLocusType_Entry)
 			return (Node *) node;
-
 		/**
 		 * Steps:
 		 * 1 - get targetlist from seqscan
@@ -1325,7 +1326,6 @@ adjustPlanFlow(Plan *plan,
 			recur = true;
 			rescannable = false;
 			break;
-
 		case T_Append:			/* Maybe handle specially some day. */
 		case T_MergeAppend:
 		default:
