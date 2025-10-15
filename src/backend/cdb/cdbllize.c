@@ -429,6 +429,7 @@ ParallelizeCorrelatedSubPlanUpdateFlowMutator(Node *node)
 static Node *
 ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerContext *ctx)
 {
+	bool funcScanCanBeMaterialized = false;
 	if (node == NULL)
 		return NULL;
 
@@ -453,6 +454,24 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 						 errdetail("In a subquery FROM clause, a function invocation cannot contain a correlated reference.")));
 			}
 		}
+		/* Check whether FunctionScan can be materialized
+		   FunctionScans with locus Entry can be materialized and
+		   broadcased if their paramenters are not depending on outer
+		   query results */
+		if (((Plan *)node)->flow->locustype == CdbLocusType_Entry &&
+			ctx->movement == MOVEMENT_BROADCAST)
+		{
+			FunctionScan *fscan = (FunctionScan *)node;
+			funcScanCanBeMaterialized = true;
+			foreach (lc, fscan->functions) {
+				RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(lc);
+				if (rtfunc->funcexpr && ContainsParamWalker(rtfunc->funcexpr, NULL /* ctx */ ))
+				{
+					funcScanCanBeMaterialized = false;
+					break;
+				}
+			}
+		}
 	}
 
 	/*
@@ -465,7 +484,7 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 	if (IsA(node, SeqScan)
 		||IsA(node, ShareInputScan)
 		||IsA(node, ExternalScan)
-		||(IsA(node, FunctionScan) && ((Plan *)node)->flow->locustype != ctx->currentPlanFlow->locustype)
+		||(IsA(node, FunctionScan) && funcScanCanBeMaterialized)
 		||(IsA(node, SubqueryScan) && IsA(((SubqueryScan *) node)->subplan, ModifyTable))
 		||IsA(node,ModifyTable))
 	{
