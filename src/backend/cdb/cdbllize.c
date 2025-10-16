@@ -503,6 +503,7 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		if (scanPlan->flow->locustype == CdbLocusType_Entry
 		   && ctx->currentPlanFlow->locustype == CdbLocusType_Entry)
 			return (Node *) node;
+
 		/**
 		 * Steps:
 		 * 1 - get targetlist from seqscan
@@ -1345,6 +1346,7 @@ adjustPlanFlow(Plan *plan,
 			recur = true;
 			rescannable = false;
 			break;
+
 		case T_Append:			/* Maybe handle specially some day. */
 		case T_MergeAppend:
 		default:
