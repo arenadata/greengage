@@ -1,3 +1,7 @@
+-- start_matchsubs
+-- m/ \(pathnode\.c:\d+\)/
+-- s/ \(pathnode\.c:\d+\)//
+-- end_matchsubs
 SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%';
          name         | setting 
 ----------------------+---------
@@ -154,6 +158,24 @@ select z.fooid, z.f2 from foost(sin(pi()/2)::int) z ORDER BY 1,2;
      1 | 33
 (2 rows)
 
+-- function execute on master in subselect, with correlation
+alter function foost(int) execute on master;
+select * from foo2
+where f2 in (select f2 from foost(foo2.fooid) z where z.fooid = foo2.fooid)
+ORDER BY 1,2;
+ERROR:  cannot execute EXECUTE ON MASTER function in a subquery with arguments from outer query
+-- function execute on initplan in subselect, with correlation
+alter function foost(int) execute on initplan;
+select * from foo2
+where f2 in (select f2 from foost(foo2.fooid) z where z.fooid = foo2.fooid)
+ORDER BY 1,2;
+ERROR:  cannot execute EXECUTE ON INITPLAN function in a subquery with arguments from outer query
+-- function execute on all segments in subselect, with correlation
+alter function foost(int) execute on all segments;
+select * from foo2
+where f2 in (select f2 from foost(foo2.fooid) z where z.fooid = foo2.fooid)
+ORDER BY 1,2;
+ERROR:  cannot execute EXECUTE ON ALL SEGMENTS function in a subquery with arguments from outer query
 DROP FUNCTION foost(int);
 --
 -- RETURNS SETOF record
