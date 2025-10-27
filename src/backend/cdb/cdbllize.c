@@ -464,7 +464,22 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		if (((Plan *) node)->flow->locustype == CdbLocusType_Entry &&
 			ctx->movement == MOVEMENT_BROADCAST)
 		{
+			FunctionScan *fscan = (FunctionScan *) node;
+
 			funcScanCanBeMaterialized = true;
+
+			foreach(lc, fscan->functions)
+			{
+				RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(lc);
+
+				if (rtfunc->funcexpr && ContainsParamWalker(rtfunc->funcexpr, NULL /* ctx */ ))
+				{
+					ereport(ERROR,
+							(errcode(ERRCODE_GP_FEATURE_NOT_YET),
+							 errmsg("cannot parallelize that query yet"),
+							 errdetail("In a subquery FROM clause, a function invocation cannot contain a correlated reference.")));
+				}
+			}
 		}
 	}
 

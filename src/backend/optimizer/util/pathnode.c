@@ -2797,8 +2797,6 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 				 */
 				if (contain_mutables)
 					CdbPathLocus_MakeEntry(&pathnode->locus);
-				// else if (contain_outer_params)
-				// 	elog(ERROR, "cannot execute EXECUTE ON ANY function in a subquery with arguments from outer query");
 				else
 					CdbPathLocus_MakeGeneral(&pathnode->locus,
 											 getgpsegmentCount());
