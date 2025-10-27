@@ -457,26 +457,14 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		}
 
 		/*
-		 * Check whether FunctionScan can be materialized FunctionScans with
+		 * Check whether FunctionScan can be materialized. FunctionScans with
 		 * locus Entry can be materialized and broadcased if their paramenters
 		 * are not depending on outer query results
 		 */
 		if (((Plan *) node)->flow->locustype == CdbLocusType_Entry &&
 			ctx->movement == MOVEMENT_BROADCAST)
 		{
-			FunctionScan *fscan = (FunctionScan *) node;
-
 			funcScanCanBeMaterialized = true;
-			foreach(lc, fscan->functions)
-			{
-				RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(lc);
-
-				if (rtfunc->funcexpr && ContainsParamWalker(rtfunc->funcexpr, NULL /* ctx */ ))
-				{
-					funcScanCanBeMaterialized = false;
-					break;
-				}
-			}
 		}
 	}
 
