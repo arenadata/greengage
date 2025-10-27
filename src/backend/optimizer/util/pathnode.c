@@ -2689,7 +2689,6 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 	{
 		char		exec_location = PROEXECLOCATION_ANY;
 		bool		contain_mutables = false;
-		bool		contain_outer_params = false;
 
 		/*
 		 * If the function desires to run on segments, mark randomly-distributed.
@@ -2697,17 +2696,6 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 		 * Otherwise let it be evaluated in the same slice as its parent operator.
 		 */
 		Assert(rte->rtekind == RTE_FUNCTION);
-
-		foreach (lc, rel->baserestrictinfo)
-		{
-			RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
-
-			if (rinfo->contain_outer_query_references)
-			{
-				contain_outer_params = true;
-				break;
-			}
-		}
 
 		foreach (lc, rte->functions)
 		{
@@ -2779,10 +2767,6 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 				 * be executed anywhere.
 				 */
 			}
-
-			if (!contain_outer_params &&
-				contains_outer_params(rtfunc->funcexpr, root))
-				contain_outer_params = true;
 		}
 
 		switch (exec_location)
@@ -2802,18 +2786,12 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 											 getgpsegmentCount());
 				break;
 			case PROEXECLOCATION_MASTER:
-				if (contain_outer_params)
-					elog(ERROR, "cannot execute EXECUTE ON MASTER function in a subquery with arguments from outer query");
 				CdbPathLocus_MakeEntry(&pathnode->locus);
 				break;
 			case PROEXECLOCATION_INITPLAN:
-				if (contain_outer_params)
-					elog(ERROR, "cannot execute EXECUTE ON INITPLAN function in a subquery with arguments from outer query");
 				CdbPathLocus_MakeEntry(&pathnode->locus);
 				break;
 			case PROEXECLOCATION_ALL_SEGMENTS:
-				if (contain_outer_params)
-					elog(ERROR, "cannot execute EXECUTE ON ALL SEGMENTS function in a subquery with arguments from outer query");
 				CdbPathLocus_MakeStrewn(&pathnode->locus,
 										getgpsegmentCount());
 				break;

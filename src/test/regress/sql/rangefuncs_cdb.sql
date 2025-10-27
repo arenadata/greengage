@@ -89,24 +89,6 @@ ORDER BY 1,2;
 -- nested functions
 select z.fooid, z.f2 from foost(sin(pi()/2)::int) z ORDER BY 1,2;
 
--- function execute on master in subselect, with correlation
-alter function foost(int) execute on master;
-select * from foo2
-where f2 in (select f2 from foost(foo2.fooid) z where z.fooid = foo2.fooid)
-ORDER BY 1,2;
-
--- function execute on initplan in subselect, with correlation
-alter function foost(int) execute on initplan;
-select * from foo2
-where f2 in (select f2 from foost(foo2.fooid) z where z.fooid = foo2.fooid)
-ORDER BY 1,2;
-
--- function execute on all segments in subselect, with correlation
-alter function foost(int) execute on all segments;
-select * from foo2
-where f2 in (select f2 from foost(foo2.fooid) z where z.fooid = foo2.fooid)
-ORDER BY 1,2;
-
 DROP FUNCTION foost(int);
 
 --
