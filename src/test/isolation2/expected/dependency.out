@@ -54,7 +54,7 @@ DROP SCHEMA
 2: commit;
 COMMIT
 1<:  <... completed>
-ERROR:  namespace ##### was concurrently dropped
+ERROR:  schema ##### was concurrently dropped
 1: end;
 ROLLBACK
 
@@ -255,7 +255,7 @@ DROP FUNCTION
 2: commit;
 COMMIT
 1<:  <... completed>
-ERROR:  procedure ##### was concurrently dropped
+ERROR:  function ##### was concurrently dropped
 1: end;
 ROLLBACK
 
@@ -306,7 +306,7 @@ DROP FUNCTION
 2: commit;
 COMMIT
 1<:  <... completed>
-ERROR:  procedure ##### was concurrently dropped
+ERROR:  function ##### was concurrently dropped
 1: end;
 ROLLBACK
 
@@ -543,7 +543,7 @@ DROP FOREIGN DATA WRAPPER
 2: commit;
 COMMIT
 1<:  <... completed>
-ERROR:  foreign data wrapper ##### was concurrently dropped
+ERROR:  foreign-data wrapper ##### was concurrently dropped
 1: end;
 ROLLBACK
 
@@ -592,7 +592,7 @@ DROP SERVER
 2: commit;
 COMMIT
 1<:  <... completed>
-ERROR:  server ##### was concurrently dropped
+ERROR:  foreign server ##### was concurrently dropped
 1: end;
 ROLLBACK
 
@@ -916,7 +916,7 @@ DROP FUNCTION
 2: commit;
 COMMIT
 1<:  <... completed>
-ERROR:  procedure ##### was concurrently dropped
+ERROR:  function ##### was concurrently dropped
 1: end;
 ROLLBACK
 
@@ -963,7 +963,7 @@ DROP FUNCTION
 2: commit;
 COMMIT
 1<:  <... completed>
-ERROR:  procedure ##### was concurrently dropped
+ERROR:  function ##### was concurrently dropped
 1: end;
 ROLLBACK
 

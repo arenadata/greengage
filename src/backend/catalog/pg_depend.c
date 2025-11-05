@@ -1086,83 +1086,34 @@ get_index_ref_constraints(Oid indexId)
 static void
 depLockAndCheckObject(const ObjectAddress *referenced)
 {
-	enum SysCacheIdentifier cacheId;
-	const char *objName;
+	int			cacheId = get_object_catcache_oid(referenced->classId);
 
-	switch (getObjectClass(referenced))
+	/*
+	 * Lock only dependencies that can be dropped explicitly, and do nothing
+	 * for others.
+	 */
+	switch (cacheId)
 	{
-		case OCLASS_SCHEMA:
-			cacheId = NAMESPACEOID;
-			objName = "namespace";
+		case NAMESPACEOID:
+		case TYPEOID:
+		case COLLOID:
+		case LANGOID:
+		case PROCOID:
+		case TSPARSEROID:
+		case TSTEMPLATEOID:
+		case FOREIGNDATAWRAPPEROID:
+		case FOREIGNSERVEROID:
+		case EXTPROTOCOLOID:
+		case TSDICTOID:
+		case OPEROID:
+		case CLAOID:
+		case OPFAMILYOID:
+		case AMOID:
+		case PUBLICATIONOID:
 			break;
-		case OCLASS_TYPE:
-			cacheId = TYPEOID;
-			objName = "type";
-			break;
-		case OCLASS_COLLATION:
-			cacheId = COLLOID;
-			objName = "collation";
-			break;
-		case OCLASS_LANGUAGE:
-			cacheId = LANGOID;
-			objName = "language";
-			break;
-		case OCLASS_PROC:
-			cacheId = PROCOID;
-			objName = "procedure";
-			break;
-		case OCLASS_TSPARSER:
-			cacheId = TSPARSEROID;
-			objName = "text search parser";
-			break;
-		case OCLASS_TSTEMPLATE:
-			cacheId = TSTEMPLATEOID;
-			objName = "text search template";
-			break;
-		case OCLASS_FDW:
-			cacheId = FOREIGNDATAWRAPPEROID;
-			objName = "foreign data wrapper";
-			break;
-		case OCLASS_FOREIGN_SERVER:
-			cacheId = FOREIGNSERVEROID;
-			objName = "server";
-			break;
-		case OCLASS_EXTPROTOCOL:
-			cacheId = EXTPROTOCOLOID;
-			objName = "protocol";
-			break;
-		case OCLASS_TSDICT:
-			cacheId = TSDICTOID;
-			objName = "text search dictionary";
-			break;
-		case OCLASS_OPERATOR:
-			cacheId = OPEROID;
-			objName = "operator";
-			break;
-		case OCLASS_OPCLASS:
-			cacheId = CLAOID;
-			objName = "operator class";
-			break;
-		case OCLASS_OPFAMILY:
-			cacheId = OPFAMILYOID;
-			objName = "operator family";
-			break;
-		case OCLASS_AM:
-			cacheId = AMOID;
-			objName = "access method";
-			break;
-		case OCLASS_PUBLICATION:
-			cacheId = PUBLICATIONOID;
-			objName = "publication";
-			break;
-		case OCLASS_CLASS:
+		case RELOID:
 			if (get_rel_relkind(referenced->objectId) == RELKIND_SEQUENCE)
-			{
-				cacheId = RELOID;
-				objName = "sequence";
 				break;
-			}
-			return;
 		default:
 			return;
 	}
@@ -1191,8 +1142,18 @@ depLockAndCheckObject(const ObjectAddress *referenced)
 
 	if (!SearchSysCacheExists1(cacheId,
 							   ObjectIdGetDatum(referenced->objectId)))
+	{
+		const char *objName = NULL;
+
+		if (cacheId == RELOID)
+			objName = "sequence";
+		else
+			objName = get_object_class_descr(referenced->classId);
+
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("%s %u was concurrently dropped",
 						objName, referenced->objectId)));
+	}
 }
+
