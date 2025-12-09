@@ -2913,6 +2913,8 @@ SwitchResGroupOnSegment(const char *buf, int len)
 
 	/* Add into cgroup */
 	ResGroupOps_AssignGroup(self->groupId, &(self->caps), MyProcPid);
+
+	pgstat_report_resgroup(GetCurrentTimestamp(), group->groupId);
 }
 
 /*
