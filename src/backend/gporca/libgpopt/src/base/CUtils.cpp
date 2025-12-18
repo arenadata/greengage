@@ -1495,9 +1495,11 @@ CUtils::Equals(const CExpressionArray *pdrgpexprLeft,
 	return fEqual;
 }
 
-// deep equality of expression trees
+// common handler for direct expression comparation CUtils::Equals
+// and distrubtion mathing CUtils::EqualDistributions
+// nocommit: better name for fIgnoreCastsWithinSameOpfamily?
 BOOL
-CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight)
+CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight, bool fIgnoreCastsWithinSameOpfamily)
 {
 	GPOS_CHECK_STACK_SIZE;
 
@@ -1513,6 +1515,63 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight)
 		return true;
 	}
 
+	// when using legacy hashfamilies, it is not guarantied that different types within
+	// the same opfamily have the same hashfunction
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) && fIgnoreCastsWithinSameOpfamily)
+	{
+		if (pexprLeft->Pop()->Eopid() == COperator::EopScalarCast)
+		{
+			CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
+			CScalar *popCast = CScalar::PopConvert(pexprLeft->Pop());
+
+			GPOS_ASSERT(pexprLeft->Arity() == 1);
+			CExpression *pexprNext = (*pexprLeft)[0];
+			COperator *pop_next = pexprNext->Pop();
+			GPOS_ASSERT(pop_next->FScalar());
+
+			IMDId *mdidSource = (CScalar::PopConvert(pop_next))->MdidType();
+			IMDId *mdidDest = popCast->MdidType();
+
+			const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
+			const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
+
+			IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
+			IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
+
+			if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
+			{
+				// this cast won't change the way how a value is hashed, so it is justified to skip it
+				return EqualDistributions(pexprNext, pexprRight);
+			}
+		}
+
+		// The same thing for the right part...
+		if (pexprRight->Pop()->Eopid() == COperator::EopScalarCast)
+		{
+			CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
+			CScalar *popCast = CScalar::PopConvert(pexprRight->Pop());
+
+			GPOS_ASSERT(pexprRight->Arity() == 1);
+			CExpression *pexprNext = (*pexprRight)[0];
+			COperator *pop_next = pexprNext->Pop();
+			GPOS_ASSERT(pop_next->FScalar());
+
+			IMDId *mdidSource = (CScalar::PopConvert(pop_next))->MdidType();
+			IMDId *mdidDest = popCast->MdidType();
+
+			const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
+			const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
+
+			IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
+			IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
+
+			if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
+			{
+				return EqualDistributions(pexprLeft, pexprNext);
+			}
+		}
+	}
+
 	// compare number of children and root operators
 	if (pexprLeft->Arity() != pexprRight->Arity() ||
 		!pexprLeft->Pop()->Matches(pexprRight->Pop()))
@@ -1526,6 +1585,19 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight)
 	}
 
 	return FMatchChildrenUnordered(pexprLeft, pexprRight);
+}
+
+// deep equality of expression trees
+BOOL
+CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight)
+{
+	return Equals(pexprLeft, pexprRight, false);
+}
+
+BOOL
+CUtils::EqualDistributions(const CExpression *pexprLeft, const CExpression *pexprRight)
+{
+	return Equals(pexprLeft, pexprRight, true);
 }
 
 // check if two expressions have the same children in any order
@@ -1586,7 +1658,8 @@ CUtils::UlOccurrences(const CExpression *pexpr, CExpressionArray *pdrgpexpr)
 
 // compare expression against an array of expressions
 BOOL
-CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr)
+CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr,
+		          BOOL fSkipCastsBetweenSameOpfamily)
 {
 	GPOS_ASSERT(nullptr != pexpr);
 
@@ -1594,7 +1667,7 @@ CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr)
 	BOOL fEqual = false;
 	for (ULONG ul = 0; !fEqual && ul < size; ul++)
 	{
-		fEqual = Equals(pexpr, (*pdrgpexpr)[ul]);
+		fEqual = Equals(pexpr, (*pdrgpexpr)[ul], fSkipCastsBetweenSameOpfamily);
 	}
 
 	return fEqual;
@@ -1603,7 +1676,8 @@ CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr)
 // check if first expression array contains all expressions in second array
 BOOL
 CUtils::Contains(const CExpressionArray *pdrgpexprFst,
-				 const CExpressionArray *pdrgpexprSnd)
+				 const CExpressionArray *pdrgpexprSnd,
+				 BOOL fSkipCastsBetweenSameOpfamily)
 {
 	GPOS_ASSERT(nullptr != pdrgpexprFst);
 	GPOS_ASSERT(nullptr != pdrgpexprSnd);
@@ -1622,10 +1696,18 @@ CUtils::Contains(const CExpressionArray *pdrgpexprFst,
 	BOOL fContains = true;
 	for (ULONG ul = 0; fContains && ul < size; ul++)
 	{
-		fContains = FEqualAny((*pdrgpexprSnd)[ul], pdrgpexprFst);
+		fContains = FEqualAny((*pdrgpexprSnd)[ul], pdrgpexprFst, fSkipCastsBetweenSameOpfamily);
 	}
 
 	return fContains;
+}
+
+BOOL
+CUtils::ContainsDistributions(const CExpressionArray *pdrgpexprFst,
+				              const CExpressionArray *pdrgpexprSnd)
+{
+
+	return CUtils::Contains(pdrgpexprFst, pdrgpexprSnd, true);
 }
 
 // generate a Not expression on top of the given expression
@@ -4895,7 +4977,8 @@ CUtils::MakeJoinWithoutInferredPreds(CMemoryPool *mp, CExpression *join_expr)
 
 // check if the input expr array contains the expr
 BOOL
-CUtils::Contains(const CExpressionArray *exprs, CExpression *expr_to_match)
+CUtils::Contains(const CExpressionArray *exprs, CExpression *expr_to_match,
+	             BOOL fSkipCastsBetweenSameOpfamily)
 {
 	if (nullptr == exprs)
 	{
@@ -4906,9 +4989,15 @@ CUtils::Contains(const CExpressionArray *exprs, CExpression *expr_to_match)
 	for (ULONG ul = 0; ul < exprs->Size() && !contains; ul++)
 	{
 		CExpression *expr = (*exprs)[ul];
-		contains = CUtils::Equals(expr, expr_to_match);
+		contains = CUtils::Equals(expr, expr_to_match, fSkipCastsBetweenSameOpfamily);
 	}
 	return contains;
+}
+
+BOOL
+CUtils::ContainsDistribution(const CExpressionArray *exprs, CExpression *expr_to_match)
+{
+	return Contains(exprs, expr_to_match, true);
 }
 
 BOOL

@@ -294,7 +294,7 @@ CDistributionSpecHashed::FMatchSubset(
 				GPOS_ASSERT(false == fFound);
 				CExpressionArray *equiv_distribution_exprs =
 					(*equiv_hash_exprs)[ulInner];
-				if (CUtils::Contains(equiv_distribution_exprs, pexprOwn))
+				if (CUtils::ContainsDistribution(equiv_distribution_exprs, pexprOwn))
 				{
 					fFound = true;
 					break;
@@ -520,12 +520,12 @@ CDistributionSpecHashed::FMatchHashedDistribution(
 		}
 		CExpression *pexprLeft = (*(pdshashed->m_pdrgpexpr))[ul];
 		CExpression *pexprRight = (*m_pdrgpexpr)[ul];
-		BOOL fSuccess = CUtils::Equals(pexprLeft, pexprRight);
+		BOOL fSuccess = CUtils::EqualDistributions(pexprLeft, pexprRight);
 		if (!fSuccess)
 		{
 			// if failed to find a equal match in the source distribution expr
 			// array, check the equivalent exprs to find a match
-			fSuccess = CUtils::Contains(equiv_distribution_exprs, pexprRight);
+			fSuccess = CUtils::ContainsDistribution(equiv_distribution_exprs, pexprRight);
 		}
 		if (!fSuccess)
 		{
@@ -673,7 +673,7 @@ CDistributionSpecHashed::IsCoveredBy(
 	const CDistributionSpecHashed *pds = this;
 	while (pds && !covers)
 	{
-		covers = CUtils::Contains(dist_cols_expr_array, pds->Pdrgpexpr());
+		covers = CUtils::ContainsDistributions(dist_cols_expr_array, pds->Pdrgpexpr());
 		pds = pds->PdshashedEquiv();
 	}
 	return covers;

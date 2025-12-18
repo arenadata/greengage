@@ -444,20 +444,35 @@ public:
 	static CExpressionArray *PdrgpexprDedup(CMemoryPool *mp,
 											CExpressionArray *pdrgpexpr);
 
+	// common handler for direct expression comparation CUtils::Equals
+	// and distrubtion mathing CUtils::EqualDistributions
+	static BOOL Equals(const CExpression *pexprLeft,
+		               const CExpression *pexprRight,
+					   bool fSkipCastsBetweenSameOpfamily);
+
 	// deep equality of expression trees
 	static BOOL Equals(const CExpression *pexprLeft,
 					   const CExpression *pexprRight);
 
+	static BOOL EqualDistributions(const CExpression *pexprLeft,
+						   		  const CExpression *pexprRight);
+
 	// compare expression against an array of expressions
 	static BOOL FEqualAny(const CExpression *pexpr,
-						  const CExpressionArray *pdrgpexpr);
+						  const CExpressionArray *pdrgpexpr,
+						  BOOL fSkipCastsBetweenSameOpfamily);
 
 	// deep equality of expression arrays
 	static BOOL Equals(const CExpressionArray *pdrgpexprLeft,
 					   const CExpressionArray *pdrgpexprRight);
 
 	// check if first expression array contains all expressions in second array
+	// nocommit: expalain?
 	static BOOL Contains(const CExpressionArray *pdrgpexprFst,
+						 const CExpressionArray *pdrgpexprSnd,
+					  	 bool fSkipCastsBetweenSameOpfamily);
+
+	static BOOL ContainsDistributions(const CExpressionArray *pdrgpexprFst,
 						 const CExpressionArray *pdrgpexprSnd);
 
 	// return the number of occurrences of the given expression in the given
@@ -994,8 +1009,13 @@ public:
 	static CExpression *MakeJoinWithoutInferredPreds(CMemoryPool *mp,
 													 CExpression *join_expr);
 
+	// nocommit: explain
 	static BOOL Contains(const CExpressionArray *exprs,
-						 CExpression *expr_to_match);
+						 CExpression *expr_to_match,
+						 BOOL fSkipCastsBetweenSameOpfamily);
+
+	static BOOL ContainsDistribution(const CExpressionArray *exprs,
+						              CExpression *expr_to_match);
 
 	static BOOL Equals(const CExpressionArrays *exprs_arr,
 					   const CExpressionArrays *other_exprs_arr);
