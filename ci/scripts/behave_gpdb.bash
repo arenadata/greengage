@@ -33,7 +33,7 @@ function _main() {
 				exit 1
 		fi
 
-		exprt BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/~concourse_cluster/concourse_cluster/g")"
+		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/~concourse_cluster/concourse_cluster/g")"
 		# Run inside a subshell so it does not pollute the environment after
 		# sourcing greengage_path
 		# time (make_cluster)
