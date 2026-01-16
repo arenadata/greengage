@@ -19,17 +19,17 @@ def before_all(context):
         raise Exception("Requires at least behave version 1.2.6 (found %s)" % behave.__version__)
 
 def before_feature(context, feature):
+    if "concourse_cluster" in set(context.config.tags) and not hasattr(context, "concourse_cluster_created"):
+        from test.behave_utils.ci.fixtures import init_cluster
+        context.concourse_cluster_created = True
+        use_fixture(init_cluster, context)
+
     # we should be able to run gpexpand without having a cluster initialized
     tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate', 'gpmovemirrors',
                     'gpconfig', 'gpssh-exkeys', 'gpstop', 'gpinitsystem', 'cross_subnet',
                     'gplogfilter']
     if set(context.feature.tags).intersection(tags_to_skip):
         return
-
-    if "concourse_cluster" in set(context.config.tags) and not hasattr(context, "concourse_cluster_created"):
-        from test.behave_utils.ci.fixtures import init_cluster
-        context.concourse_cluster_created = True
-        use_fixture(init_cluster, context)
 
     drop_database_if_exists(context, 'testdb')
     drop_database_if_exists(context, 'bkdb')
