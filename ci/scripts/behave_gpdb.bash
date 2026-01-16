@@ -13,6 +13,7 @@ function gen_env(){
 
 		# source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
 		export MASTER_DATA_DIRECTORY="dummy"
+		export PGPORT=6000
 
 		cd "\${1}/gpdb_src/gpMgmt/"
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
