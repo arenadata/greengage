@@ -26,6 +26,11 @@ def before_feature(context, feature):
     if set(context.feature.tags).intersection(tags_to_skip):
         return
 
+    if "concourse_cluster" in set(context.config.tags) and not hasattr(context, "concourse_cluster_created"):
+        from test.behave_utils.ci.fixtures import init_cluster
+        context.concourse_cluster_created = True
+        use_fixture(init_cluster, context)
+
     drop_database_if_exists(context, 'testdb')
     drop_database_if_exists(context, 'bkdb')
     drop_database_if_exists(context, 'fullbkdb')
@@ -101,11 +106,6 @@ def before_scenario(context, scenario):
     if "skip" in scenario.effective_tags:
         scenario.skip("skipping scenario tagged with @skip")
         return
-
-    if "concourse_cluster" in scenario.effective_tags and not hasattr(context, "concourse_cluster_created"):
-        from test.behave_utils.ci.fixtures import init_cluster
-        context.concourse_cluster_created = True
-        return use_fixture(init_cluster, context)
 
     if 'gpmovemirrors' in context.feature.tags:
         context.mirror_context = MirrorMgmtContext()
