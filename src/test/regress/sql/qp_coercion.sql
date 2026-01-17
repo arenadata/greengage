@@ -1,32 +1,35 @@
--- This file contains tests releated to the operations on different types (mainly joins)
+-- This file contains tests releated to the operations on different types (mainly joins).
 -- Some of the tests performed here may be already found inside other files,
--- but it is nice to have a centrilized place where we can obsverve this
--- behavior as a whole
--- The main concern here is redistribtuion mitigation on types with compatible hashfunctions
+-- But it is nice to have a centrilized place to observe and compare behavior of the planners.
 
-create schema qp_coercion;
-set search_path to qp_coercion;
 set optimizer_enable_mergejoin = false;
 set optimizer_enable_nljoin = false;
 set enable_mergejoin = false;
 set enable_nestloop = false;
 
+-- start ignore
+drop table if exists mto_int2;
+drop table if exists mto_int4;
+drop table if exists mto_int8;
+drop table if exists mto_int2_int4;
+drop table if exists mto_int4_int8;
+drop table if exists mto_float4;
+drop table if exists mto_float8;
+drop table if exists mto_text;
+-- end ingnore
+
 create table mto_int2 as (select a::int2 from generate_series(0, 10) as a) distributed by (a);
 create table mto_int4 as (select a::int4 from generate_series(5, 15) as a) distributed by (a);
 create table mto_int8 as (select a::int8 from generate_series(10, 20) as a) distributed by (a);
-
-create table mto_float4 as (select a::float4 from generate_series(0, 10, 0.5) as a) distributed by (a);
+create table mto_int4_int8 as (select gen::int4 as a, gen::int8 as b from generate_series(1, 10) as gen) distributed by (a, b);
 create table mto_float8 as (select a::float8 from generate_series(5, 15, 0.5) as a) distributed by (a);
-
 create table mto_text as (select a::text from generate_series(5, 15) as a) distributed by (a);
 
 
--- nocommit: better wording?
--- Perform inner join on all opfamiles containing more than one type
+-- Perform an inner join on all hash opfamiles containing more than one type
 -- We shouldn't see any redistributions, because:
--- Postgres-based planner has operators that work on different types
--- ORCA doesn't support this functionality, so it checks that a cast is performed within opfamily
--- boundaries
+--    The postgres-based planner has operators that work on different types
+--    ORCA doesn't have support for such operations, but it knows when a cast doesn't change the distribution
 
 explain (verbose) select * from mto_int2 join mto_int4 using(a);
 select * from mto_int2 join mto_int4 using(a);
@@ -40,20 +43,45 @@ select * from mto_int4 join mto_int8 using(a);
 explain (verbose) select * from mto_float4 join mto_float8 using(a);
 select * from mto_float4 join mto_float8 using(a);
 
--- nocommit: wording
--- Just in case, to confirm that we don't introduce wierd behavior when it comes to
--- different join types
+-- Same thing with the sides swapped
+explain (verbose) select * from mto_int4 join mto_int2 using(a);
+select * from mto_int4 join mto_int2 using(a);
 
--- Note, that this test is failing for ORCA
+explain select * from mto_int8 join mto_int2 using(a);
+select * from mto_int8 join mto_int2 using(a);
+
+explain (verbose) select * from mto_int8 join mto_int4 using(a);
+select * from mto_int8 join mto_int4 using(a);
+
+explain (verbose) select * from mto_float8 join mto_float4 using(a);
+select * from mto_float8 join mto_float4 using(a);
+
+-- This logic should work recursively
+set optimizer_join_order = query;
+
+explain (verbose)
+select * from mto_int2
+    join mto_int8 using(a)
+    join mto_int4 using(a);
+
+select * from mto_int2
+    join mto_int8 using(a)
+    join mto_int4 using(a);
+
+reset optimizer_join_order;
+
+
+-- Confirm that the same logic is correct for other join types
+explain (verbose) select * from mto_int2 full join mto_int4 using(a);
+select * from mto_int2 full join mto_int4 using(a);
+
+-- BUG: this test is failing for ORCA
 explain (verbose) select * from mto_int2 left join mto_int4 using(a);
 select * from mto_int2 left join mto_int4 using(a);
 
 explain (verbose) select * from mto_int2 right join mto_int4 using(a);
 select * from mto_int2 right join mto_int4 using(a);
 
-explain (verbose) select * from mto_int2 full join mto_int4 using(a);
-select * from mto_int2 full join mto_int4 using(a);
-
 explain (verbose)
 select * from mto_int4
 where exists (select *
@@ -76,7 +104,6 @@ where not exists (select *
                   from mto_int2
                   where mto_int4.a = mto_int2.a);
 
--- nocommit: why is this query performed on a coordinator?
 explain (verbose)
 select * from mto_int4
 where mto_int4.a not in (select * from mto_int2);
@@ -84,45 +111,35 @@ where mto_int4.a not in (select * from mto_int2);
 select * from mto_int4
 where mto_int4.a not in (select * from mto_int2);
 
-
--- Just in case, test if we can do the thing recusively
--- CTEs are used to make sure that we preserve join order and that
--- the tables on the first level have different distributions
 explain (verbose)
-select * from mto_int2
-    join mto_int4 using(a)
-    join mto_int8 using(a);
-
-select * from mto_int2
-    join mto_int4 using(a)
-    join mto_int8 using(a);
+select * from mto_int2 natural join mto_int4;
+select * from mto_int2 natural join mto_int4;
 
 
--- Test how we perform when explicit cast is present
-explain select * from mto_int2 join mto_int4 on mto_int2.a::int4 = mto_int4.a;
+-- Here, insead of an implcit cast, an explicit one is present
+--    The postgres-based planner should require a redistribuion, because
+--    distribution of the mto_int2 table is not direcly equal to the left-hand side of the expression
+--    ORCA, on the other hand, can see that redistriubion is unnecessary in such case
+explain (verbose) select * from mto_int2 join mto_int4 on mto_int2.a::int4 = mto_int4.a;
 select * from mto_int2 join mto_int4 on mto_int2.a::int4 = mto_int4.a;
 
 
 -- The same thing, but with multiple casts in a row.
--- Because the first cast tends to be converted directly a conversion function,
+-- Because the first cast tends to be converted directly to a conversion function,
 -- ORCA shouldn't be able to detect coercion chain and should require a redistribution
-explain select * from mto_float4 as mto_float4_f join mto_float4 as mto_float4_s on mto_float4_f.a::int::float4 = mto_float4_s.a;
+explain (verbose) select * from mto_float4 as mto_float4_f join mto_float4 as mto_float4_s on mto_float4_f.a::int::float4 = mto_float4_s.a;
 select * from mto_float4 as mto_float4_f join mto_float4 as mto_float4_s on mto_float4_f.a::int::float4 = mto_float4_s.a;
 
 
--- The opposite case, redistribution nodes should be present
+-- Сheck that we don't rule out necessary distribuions in the most basic case
 explain (verbose) select * from mto_float4 join mto_int4 using(a);
 select * from mto_float4 join mto_int4 using(a);
 
-explain (verbose)
-select * from mto_int4 join mto_text on mto_int4.a = mto_text.a::int4;
+explain (verbose) select * from mto_int4 join mto_text on mto_int4.a = mto_text.a::int4;
 select * from mto_int4 join mto_text on mto_int4.a = mto_text.a::int4;
 
 
--- nocommit: wording
--- nocommit: trace how non-modified version mathes distribution column with oid=16
--- ORCA specific test: CTE optimization is different enough from
--- regular optimiazation to is worth to check if it still holds
+-- ORCA: in order for there queries to work, equivalence expressions should be matched corretly
 explain (verbose)
 with int8_cte as (select * from mto_int8)
 select * from (mto_int2 join int8_cte as cte_1 using(a))
@@ -132,20 +149,53 @@ with int8_cte as (select * from mto_int8)
 select * from (mto_int2 join int8_cte as cte_1 using(a))
     join (int8_cte as cte_2 join mto_int4 using(a)) using(a);
 
--- nocommit: hash aggregate?
--- nocommit: breaking these changes with invalid catalog entries?
--- nocommit: natural join?
--- nocommit: union all?
--- nocommit: tables distributed by multiple keys?
--- nocommit: left join on using with different types
--- nocommit: Add ticket for orca not rebuilding on .h file changes
--- nocommit: Comma syntax?
--- nocommit: self join, with several levels of recursion
--- nocommit: check cardinality for one of the orca unit tests
--- nocommit: swap join sides
+explain (verbose)
+with int8_cte as (select * from mto_int8)
+select * from (mto_int2 join int8_cte as cte_1 using(a))
+    join (mto_int4 join int8_cte as cte_2 using(a)) using(a);
+
+with int8_cte as (select * from mto_int8)
+select * from (mto_int2 join int8_cte as cte_1 using(a))
+    join (mto_int4 join int8_cte as cte_2 using(a)) using(a);
+
+
+-- Test distribution by multiple keys
+explain (verbose)
+select * from mto_int2_int4 as t1 join mto_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
+select * from mto_int2_int4 as t1 join mto_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
+
+explain (verbose)
+select * from mto_int2_int4 as t1 join mto_int4_int8 as t2 on (t1.a = t2.b and t1.b = t2.a);
+select * from mto_int2_int4 as t1 join mto_int4_int8 as t2 on (t1.a = t2.b and t1.b = t2.a);
+
+explain (verbose)
+select * from mto_int2_int4 as t1 join mto_int2 as t2 on (t1.a = t2.a);
+select * from mto_int2_int4 as t1 join mto_int2 as t2 on (t1.a = t2.a);
+
+set optimizer_join_order = query;
+explain (verbose)
+with mto_int2_int4_copy as (select * from mto_int2_int4)
+select * from mto_int2_int4
+    natural join mto_int4_int8
+    natural join mto_int2_int4_copy;
+
+with mto_int2_int4_copy as (select * from mto_int2_int4)
+select * from mto_int2_int4
+    natural join mto_int4_int8
+    natural join mto_int2_int4_copy;
+reset optimizer_join_order;
+
+
+drop table mto_int2;
+drop table mto_int4;
+drop table mto_int8;
+drop table mto_int2_int4;
+drop table mto_int4_int8;
+drop table mto_float4;
+drop table mto_float8;
+drop table mto_text;
 
 reset enable_nestloop;
 reset enable_mergejoin;
 reset optimizer_enable_nljoin;
 reset optimizer_enable_mergejoin;
-drop schema qp_coercion cascade;
