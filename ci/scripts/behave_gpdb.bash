@@ -11,9 +11,7 @@ function gen_env(){
 
 		source /usr/local/greengage-db-devel/greengage_path.sh
 
-		# source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
-		export MASTER_DATA_DIRECTORY="dummy"
-		export PGPORT=6000
+		source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
 
 		cd "\${1}/gpdb_src/gpMgmt/"
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
@@ -38,7 +36,7 @@ function _main() {
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/ --tags=~concourse_cluster//g")"
 		# Run inside a subshell so it does not pollute the environment after
 		# sourcing greengage_path
-		# time (make_cluster)
+		time (make_cluster)
 
 		time gen_env
 
