@@ -1500,7 +1500,8 @@ CUtils::Equals(const CExpressionArray *pdrgpexprLeft,
 // and distrubtion mathing CUtils::EqualDistributions
 // nocommit: better name for fIgnoreCastsWithinSameOpfamily?
 BOOL
-CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight, bool fIgnoreCastsWithinSameOpfamily)
+CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
+			   bool fIgnoreCastsWithinSameOpfamily)
 {
 	GPOS_CHECK_STACK_SIZE;
 
@@ -1529,7 +1530,8 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight, bool
 	//
 	// Also, when using legacy hashfamilies, it is not guarantied that different types within
 	// the same opfamily have the same hashfunction, so the logic above is not applicable
-	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) && fIgnoreCastsWithinSameOpfamily)
+	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) &&
+		fIgnoreCastsWithinSameOpfamily)
 	{
 		if (pexprLeft->Pop()->Eopid() == COperator::EopScalarCast &&
 			pexprRight->Pop()->Eopid() == COperator::EopScalarIdent)
@@ -1540,14 +1542,16 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight, bool
 			CExpression *pexprChild = (*pexprLeft)[0];
 			if (COperator::EopScalarIdent == pexprChild->Pop()->Eopid())
 			{
-				CScalarIdent *popChild = CScalarIdent::PopConvert(pexprChild->Pop());
+				CScalarIdent *popChild =
+					CScalarIdent::PopConvert(pexprChild->Pop());
 				IMDId *mdidSource = popChild->MdidType();
 				IMDId *mdidDest = popCast->MdidType();
 
 				const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
 				const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
 
-				IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
+				IMDId *mdidSourceOpfamily =
+					mdtSourceType->GetDistrOpfamilyMdid();
 				IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
 
 				if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
@@ -1566,14 +1570,16 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight, bool
 			CExpression *pexprChild = (*pexprRight)[0];
 			if (COperator::EopScalarIdent == pexprChild->Pop()->Eopid())
 			{
-				CScalarIdent *popChild = CScalarIdent::PopConvert(pexprChild->Pop());
+				CScalarIdent *popChild =
+					CScalarIdent::PopConvert(pexprChild->Pop());
 				IMDId *mdidSource = popChild->MdidType();
 				IMDId *mdidDest = popCast->MdidType();
 
 				const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
 				const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
 
-				IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
+				IMDId *mdidSourceOpfamily =
+					mdtSourceType->GetDistrOpfamilyMdid();
 				IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
 
 				if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
@@ -1607,7 +1613,8 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight)
 }
 
 BOOL
-CUtils::EqualDistributions(const CExpression *pexprLeft, const CExpression *pexprRight)
+CUtils::EqualDistributions(const CExpression *pexprLeft,
+						   const CExpression *pexprRight)
 {
 	return Equals(pexprLeft, pexprRight, true);
 }
@@ -1671,7 +1678,7 @@ CUtils::UlOccurrences(const CExpression *pexpr, CExpressionArray *pdrgpexpr)
 // compare expression against an array of expressions
 BOOL
 CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr,
-		          BOOL fSkipCastsBetweenSameOpfamily)
+				  BOOL fSkipCastsBetweenSameOpfamily)
 {
 	GPOS_ASSERT(nullptr != pexpr);
 
@@ -1708,7 +1715,8 @@ CUtils::Contains(const CExpressionArray *pdrgpexprFst,
 	BOOL fContains = true;
 	for (ULONG ul = 0; fContains && ul < size; ul++)
 	{
-		fContains = FEqualAny((*pdrgpexprSnd)[ul], pdrgpexprFst, fSkipCastsBetweenSameOpfamily);
+		fContains = FEqualAny((*pdrgpexprSnd)[ul], pdrgpexprFst,
+							  fSkipCastsBetweenSameOpfamily);
 	}
 
 	return fContains;
@@ -1716,9 +1724,8 @@ CUtils::Contains(const CExpressionArray *pdrgpexprFst,
 
 BOOL
 CUtils::ContainsDistributions(const CExpressionArray *pdrgpexprFst,
-				              const CExpressionArray *pdrgpexprSnd)
+							  const CExpressionArray *pdrgpexprSnd)
 {
-
 	return CUtils::Contains(pdrgpexprFst, pdrgpexprSnd, true);
 }
 
@@ -4990,7 +4997,7 @@ CUtils::MakeJoinWithoutInferredPreds(CMemoryPool *mp, CExpression *join_expr)
 // check if the input expr array contains the expr
 BOOL
 CUtils::Contains(const CExpressionArray *exprs, CExpression *expr_to_match,
-	             BOOL fSkipCastsBetweenSameOpfamily)
+				 BOOL fSkipCastsBetweenSameOpfamily)
 {
 	if (nullptr == exprs)
 	{
@@ -5001,13 +5008,15 @@ CUtils::Contains(const CExpressionArray *exprs, CExpression *expr_to_match,
 	for (ULONG ul = 0; ul < exprs->Size() && !contains; ul++)
 	{
 		CExpression *expr = (*exprs)[ul];
-		contains = CUtils::Equals(expr, expr_to_match, fSkipCastsBetweenSameOpfamily);
+		contains =
+			CUtils::Equals(expr, expr_to_match, fSkipCastsBetweenSameOpfamily);
 	}
 	return contains;
 }
 
 BOOL
-CUtils::ContainsDistribution(const CExpressionArray *exprs, CExpression *expr_to_match)
+CUtils::ContainsDistribution(const CExpressionArray *exprs,
+							 CExpression *expr_to_match)
 {
 	return Contains(exprs, expr_to_match, true);
 }

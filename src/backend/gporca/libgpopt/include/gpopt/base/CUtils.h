@@ -447,7 +447,7 @@ public:
 	// common handler for direct expression comparation CUtils::Equals
 	// and distrubtion mathing CUtils::EqualDistributions
 	static BOOL Equals(const CExpression *pexprLeft,
-		               const CExpression *pexprRight,
+					   const CExpression *pexprRight,
 					   bool fSkipCastsBetweenSameOpfamily);
 
 	// deep equality of expression trees
@@ -455,7 +455,7 @@ public:
 					   const CExpression *pexprRight);
 
 	static BOOL EqualDistributions(const CExpression *pexprLeft,
-						   		  const CExpression *pexprRight);
+								   const CExpression *pexprRight);
 
 	// compare expression against an array of expressions
 	static BOOL FEqualAny(const CExpression *pexpr,
@@ -470,10 +470,10 @@ public:
 	// nocommit: expalain?
 	static BOOL Contains(const CExpressionArray *pdrgpexprFst,
 						 const CExpressionArray *pdrgpexprSnd,
-					  	 bool fSkipCastsBetweenSameOpfamily);
+						 bool fSkipCastsBetweenSameOpfamily);
 
 	static BOOL ContainsDistributions(const CExpressionArray *pdrgpexprFst,
-						 const CExpressionArray *pdrgpexprSnd);
+									  const CExpressionArray *pdrgpexprSnd);
 
 	// return the number of occurrences of the given expression in the given
 	// array of expressions
@@ -1015,7 +1015,7 @@ public:
 						 BOOL fSkipCastsBetweenSameOpfamily);
 
 	static BOOL ContainsDistribution(const CExpressionArray *exprs,
-						              CExpression *expr_to_match);
+									 CExpression *expr_to_match);
 
 	static BOOL Equals(const CExpressionArrays *exprs_arr,
 					   const CExpressionArrays *other_exprs_arr);

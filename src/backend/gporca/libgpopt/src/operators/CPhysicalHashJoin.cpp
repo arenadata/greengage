@@ -646,8 +646,8 @@ CPhysicalHashJoin::PdshashedMatching(
 			{
 				// if failed to find a equal match in the source distribution expr
 				// array, check the equivalent exprs to find a match
-				fSuccess =
-					CUtils::ContainsDistribution(equiv_distribution_exprs, source_expr);
+				fSuccess = CUtils::ContainsDistribution(
+					equiv_distribution_exprs, source_expr);
 			}
 			if (fSuccess)
 			{
@@ -682,8 +682,8 @@ CPhysicalHashJoin::PdshashedMatching(
 			{
 				// if failed to find a equal match in the source distribution expr
 				// array, check the equivalent exprs to find a match
-				fSuccess =
-					CUtils::ContainsDistribution(equiv_distribution_exprs, source_expr);
+				fSuccess = CUtils::ContainsDistribution(
+					equiv_distribution_exprs, source_expr);
 			}
 			if (fSuccess)
 			{

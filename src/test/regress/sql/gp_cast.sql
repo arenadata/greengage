@@ -116,7 +116,7 @@ select * from mto_int2 natural join mto_int4;
 select * from mto_int2 natural join mto_int4;
 
 
--- Here, insead of an implcit cast, an explicit one is present
+-- Here, insead of an implicit cast, an explicit one is present
 --    The postgres-based planner should require a redistribuion, because
 --    distribution of the mto_int2 table is not direcly equal to the left-hand side of the expression
 --    ORCA, on the other hand, can see that redistriubion is unnecessary in such case

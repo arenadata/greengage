@@ -525,7 +525,8 @@ CDistributionSpecHashed::FMatchHashedDistribution(
 		{
 			// if failed to find a equal match in the source distribution expr
 			// array, check the equivalent exprs to find a match
-			fSuccess = CUtils::ContainsDistribution(equiv_distribution_exprs, pexprRight);
+			fSuccess = CUtils::ContainsDistribution(equiv_distribution_exprs,
+													pexprRight);
 		}
 		if (!fSuccess)
 		{
@@ -673,7 +674,8 @@ CDistributionSpecHashed::IsCoveredBy(
 	const CDistributionSpecHashed *pds = this;
 	while (pds && !covers)
 	{
-		covers = CUtils::ContainsDistributions(dist_cols_expr_array, pds->Pdrgpexpr());
+		covers = CUtils::ContainsDistributions(dist_cols_expr_array,
+											   pds->Pdrgpexpr());
 		pds = pds->PdshashedEquiv();
 	}
 	return covers;
@@ -765,12 +767,12 @@ CDistributionSpecHashed::ComputeEquivHashExprs(
 					// then the equivalent expr is b
 					CExpression *equiv_distribution_expr = nullptr;
 					if (CUtils::EqualDistributions(left_distribution_expr,
-									   distribution_expr))
+												   distribution_expr))
 					{
 						equiv_distribution_expr = right_distribution_expr;
 					}
 					else if (CUtils::EqualDistributions(right_distribution_expr,
-											distribution_expr))
+														distribution_expr))
 					{
 						equiv_distribution_expr = left_distribution_expr;
 					}
