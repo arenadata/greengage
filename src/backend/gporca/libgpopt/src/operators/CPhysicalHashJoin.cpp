@@ -628,18 +628,17 @@ CPhysicalHashJoin::PdshashedMatching(
 		//                     Output: t1.a
 		//
 		// here, the join condition has two expressions, and all of them have the same
-		// right-hand side. It means that for every snggle-key redistribution request we get the same
+		// right-hand side. It means that for every single-key redistribution request we get the same
 		// pexprDlvrd value (t1.a)
 		// and, when we go through the source expressions in order,
 		// the first expression will always be selected as matching for every redistribution request,
 		// meaning that the second expression has no chance to be matched, and therefore the distribution
 		// by t2.a is not considered
 		//
-		// also, I haven't checked if the same problem might arise when matching a distribution containing
-		// multiple keys. theoretically, it can. but I haven't explored if it happens in practice
+		// also, it isn't obvious if the same problem might arise when matching a distribution containing
+		// multiple keys. theoretically, it can, so it might be worth exploring
 
-		if (GPOPT_INVALID_OPT_REQUEST != ulOptReq &&
-			pdrgpexprSource->Size() > ulOptReq)
+		if (GPOPT_INVALID_OPT_REQUEST != ulOptReq && ulSourceSize > ulOptReq)
 		{
 			CExpression *source_expr = (*pdrgpexprSource)[ulOptReq];
 			BOOL fSuccess = CUtils::EqualDistributions(pexprDlvrd, source_expr);
@@ -671,7 +670,7 @@ CPhysicalHashJoin::PdshashedMatching(
 		for (ULONG idx = 0; idx < ulSourceSize; idx++)
 		{
 			// check if we've already mathed this child above
-			if (GPOPT_INVALID_OPT_REQUEST != ulOptReq && idx == ulOptReq)
+			if (idx == ulOptReq)
 			{
 				continue;
 			}
