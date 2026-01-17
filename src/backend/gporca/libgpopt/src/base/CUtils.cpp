@@ -43,6 +43,7 @@
 #include "gpopt/operators/CLogicalSequenceProject.h"
 #include "gpopt/operators/CLogicalSetOp.h"
 #include "gpopt/operators/CLogicalUnary.h"
+#include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CPhysicalAgg.h"
 #include "gpopt/operators/CPhysicalCTEConsumer.h"
 #include "gpopt/operators/CPhysicalCTEProducer.h"
@@ -1515,59 +1516,70 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight, bool
 		return true;
 	}
 
-	// when using legacy hashfamilies, it is not guarantied that different types within
-	// the same opfamily have the same hashfunction
+	// <<nocommit>>: complete query?
+	// Allow an expression like int2_columns == int2_column::int4 to be considered true
+	// In the expample above the cast is performed between types the same opfamily, so it doesn't change how
+	// the values are distributed
+	// So it to join a table on such condition without redistribution:
+	// <<nocommit>>: example
+	//
+	// Note that this check is not quite permissive, because distribution might non be changed if there are multiple casts in a row, e.g. int2_column::int4::int8
+	// But, as the time of writing this, the first cast will be turned into hard-to-detect coercion function anyway, so there is no need
+	// to perform this check recursively
+	//
+	// Also, when using legacy hashfamilies, it is not guarantied that different types within
+	// the same opfamily have the same hashfunction, so the logic above is not applicable
 	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) && fIgnoreCastsWithinSameOpfamily)
 	{
-		if (pexprLeft->Pop()->Eopid() == COperator::EopScalarCast)
+		if (pexprLeft->Pop()->Eopid() == COperator::EopScalarCast &&
+			pexprRight->Pop()->Eopid() == COperator::EopScalarIdent)
 		{
 			CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
-			CScalar *popCast = CScalar::PopConvert(pexprLeft->Pop());
+			CScalarCast *popCast = CScalarCast::PopConvert(pexprLeft->Pop());
 
-			GPOS_ASSERT(pexprLeft->Arity() == 1);
-			CExpression *pexprNext = (*pexprLeft)[0];
-			COperator *pop_next = pexprNext->Pop();
-			GPOS_ASSERT(pop_next->FScalar());
-
-			IMDId *mdidSource = (CScalar::PopConvert(pop_next))->MdidType();
-			IMDId *mdidDest = popCast->MdidType();
-
-			const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
-			const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
-
-			IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
-			IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
-
-			if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
+			CExpression *pexprChild = (*pexprLeft)[0];
+			if (COperator::EopScalarIdent == pexprChild->Pop()->Eopid())
 			{
-				// this cast won't change the way how a value is hashed, so it is justified to skip it
-				return EqualDistributions(pexprNext, pexprRight);
+				CScalarIdent *popChild = CScalarIdent::PopConvert(pexprChild->Pop());
+				IMDId *mdidSource = popChild->MdidType();
+				IMDId *mdidDest = popCast->MdidType();
+
+				const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
+				const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
+
+				IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
+				IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
+
+				if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
+				{
+					pexprLeft = pexprChild;
+				}
 			}
 		}
 
-		// The same thing for the right part...
-		if (pexprRight->Pop()->Eopid() == COperator::EopScalarCast)
+		if (pexprRight->Pop()->Eopid() == COperator::EopScalarCast &&
+			pexprLeft->Pop()->Eopid() == COperator::EopScalarIdent)
 		{
 			CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
-			CScalar *popCast = CScalar::PopConvert(pexprRight->Pop());
+			CScalarCast *popCast = CScalarCast::PopConvert(pexprRight->Pop());
 
-			GPOS_ASSERT(pexprRight->Arity() == 1);
-			CExpression *pexprNext = (*pexprRight)[0];
-			COperator *pop_next = pexprNext->Pop();
-			GPOS_ASSERT(pop_next->FScalar());
-
-			IMDId *mdidSource = (CScalar::PopConvert(pop_next))->MdidType();
-			IMDId *mdidDest = popCast->MdidType();
-
-			const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
-			const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
-
-			IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
-			IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
-
-			if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
+			CExpression *pexprChild = (*pexprRight)[0];
+			if (COperator::EopScalarIdent == pexprChild->Pop()->Eopid())
 			{
-				return EqualDistributions(pexprLeft, pexprNext);
+				CScalarIdent *popChild = CScalarIdent::PopConvert(pexprChild->Pop());
+				IMDId *mdidSource = popChild->MdidType();
+				IMDId *mdidDest = popCast->MdidType();
+
+				const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
+				const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
+
+				IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
+				IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
+
+				if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
+				{
+					pexprRight = pexprChild;
+				}
 			}
 		}
 	}

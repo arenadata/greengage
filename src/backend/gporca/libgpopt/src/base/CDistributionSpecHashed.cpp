@@ -267,7 +267,7 @@ CDistributionSpecHashed::FMatchSubset(
 				opfamily_other = (*pdsHashed->m_opfamilies)[ulInner];
 			}
 
-			if (CUtils::Equals(pexprOwn, pexprOther) &&
+			if (CUtils::Equals(pexprOwn, pexprOther, true) &&
 				CUtils::Equals(opfamily_own, opfamily_other))
 			{
 				fFound = true;
@@ -294,7 +294,7 @@ CDistributionSpecHashed::FMatchSubset(
 				GPOS_ASSERT(false == fFound);
 				CExpressionArray *equiv_distribution_exprs =
 					(*equiv_hash_exprs)[ulInner];
-				if (CUtils::ContainsDistribution(equiv_distribution_exprs, pexprOwn))
+				if (CUtils::Contains(equiv_distribution_exprs, pexprOwn, true))
 				{
 					fFound = true;
 					break;
@@ -764,12 +764,12 @@ CDistributionSpecHashed::ComputeEquivHashExprs(
 					// if the predicate is a = b, and a is the current distribution expr,
 					// then the equivalent expr is b
 					CExpression *equiv_distribution_expr = nullptr;
-					if (CUtils::Equals(left_distribution_expr,
+					if (CUtils::EqualDistributions(left_distribution_expr,
 									   distribution_expr))
 					{
 						equiv_distribution_expr = right_distribution_expr;
 					}
-					else if (CUtils::Equals(right_distribution_expr,
+					else if (CUtils::EqualDistributions(right_distribution_expr,
 											distribution_expr))
 					{
 						equiv_distribution_expr = left_distribution_expr;
