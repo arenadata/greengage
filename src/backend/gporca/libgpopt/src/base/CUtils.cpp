@@ -1516,11 +1516,13 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 		return true;
 	}
 
-	// Allow an expression like int2_column = int2_column::int4 to be considered true
-	// In this case, the cast is performed between types of the same opfamily, so it doesn't change how
+	// Allow a column reference (int2_column) and the same column reference casted to
+	// a different type within the same distribution opfamily (int2_column::int4) be considered equal
+	// In this case, presence if the cast doesn't change how
 	// the value is distributed, meaning that redistribution motion is not required
 	//
-	// Note that this check is not quite permissive, because distribution might not be changed even if there are multiple casts in a row, e.g. int2_column::int4::int8
+	// Note that this check is not quite permissive, because distribution might not be changed even if there are multiple casts in a row,
+	// e.g. int2_column::int4::int8
 	// But, as the time of writing this, the first cast will be turned into hard-to-detect coercion function anyway, so there is no need
 	// to perform this check recursively
 	//
