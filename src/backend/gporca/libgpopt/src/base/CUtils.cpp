@@ -1498,10 +1498,9 @@ CUtils::Equals(const CExpressionArray *pdrgpexprLeft,
 
 // common handler for direct expression comparation CUtils::Equals
 // and distrubtion mathing CUtils::EqualDistributions
-// nocommit: better name for fIgnoreCastsWithinSameOpfamily?
 BOOL
 CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
-			   bool fIgnoreCastsWithinSameOpfamily)
+			   bool fMatchDistribution)
 {
 	GPOS_CHECK_STACK_SIZE;
 
@@ -1517,21 +1516,18 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 		return true;
 	}
 
-	// <<nocommit>>: complete query?
-	// Allow an expression like int2_columns == int2_column::int4 to be considered true
-	// In the expample above the cast is performed between types the same opfamily, so it doesn't change how
-	// the values are distributed
-	// So it to join a table on such condition without redistribution:
-	// <<nocommit>>: example
+	// Allow an expression like int2_column = int2_column::int4 to be considered true
+	// In this case, the cast is performed between types of the same opfamily, so it doesn't change how
+	// the value is distributed, meaning that redistribution motion is not required
 	//
-	// Note that this check is not quite permissive, because distribution might non be changed if there are multiple casts in a row, e.g. int2_column::int4::int8
+	// Note that this check is not quite permissive, because distribution might not be changed even if there are multiple casts in a row, e.g. int2_column::int4::int8
 	// But, as the time of writing this, the first cast will be turned into hard-to-detect coercion function anyway, so there is no need
 	// to perform this check recursively
 	//
-	// Also, when using legacy hashfamilies, it is not guarantied that different types within
+	// Also, when using legacy hashfamilies, it is not guaranteed that different types within
 	// the same opfamily have the same hashfunction, so the logic above is not applicable
 	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) &&
-		fIgnoreCastsWithinSameOpfamily)
+		fMatchDistribution)
 	{
 		if (pexprLeft->Pop()->Eopid() == COperator::EopScalarCast &&
 			pexprRight->Pop()->Eopid() == COperator::EopScalarIdent)
@@ -1678,7 +1674,7 @@ CUtils::UlOccurrences(const CExpression *pexpr, CExpressionArray *pdrgpexpr)
 // compare expression against an array of expressions
 BOOL
 CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr,
-				  BOOL fSkipCastsBetweenSameOpfamily)
+				  BOOL fMatchDistribution)
 {
 	GPOS_ASSERT(nullptr != pexpr);
 
@@ -1686,7 +1682,7 @@ CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr,
 	BOOL fEqual = false;
 	for (ULONG ul = 0; !fEqual && ul < size; ul++)
 	{
-		fEqual = Equals(pexpr, (*pdrgpexpr)[ul], fSkipCastsBetweenSameOpfamily);
+		fEqual = Equals(pexpr, (*pdrgpexpr)[ul], fMatchDistribution);
 	}
 
 	return fEqual;
@@ -1695,8 +1691,7 @@ CUtils::FEqualAny(const CExpression *pexpr, const CExpressionArray *pdrgpexpr,
 // check if first expression array contains all expressions in second array
 BOOL
 CUtils::Contains(const CExpressionArray *pdrgpexprFst,
-				 const CExpressionArray *pdrgpexprSnd,
-				 BOOL fSkipCastsBetweenSameOpfamily)
+				 const CExpressionArray *pdrgpexprSnd, BOOL fMatchDistribution)
 {
 	GPOS_ASSERT(nullptr != pdrgpexprFst);
 	GPOS_ASSERT(nullptr != pdrgpexprSnd);
@@ -1715,8 +1710,8 @@ CUtils::Contains(const CExpressionArray *pdrgpexprFst,
 	BOOL fContains = true;
 	for (ULONG ul = 0; fContains && ul < size; ul++)
 	{
-		fContains = FEqualAny((*pdrgpexprSnd)[ul], pdrgpexprFst,
-							  fSkipCastsBetweenSameOpfamily);
+		fContains =
+			FEqualAny((*pdrgpexprSnd)[ul], pdrgpexprFst, fMatchDistribution);
 	}
 
 	return fContains;
@@ -4997,7 +4992,7 @@ CUtils::MakeJoinWithoutInferredPreds(CMemoryPool *mp, CExpression *join_expr)
 // check if the input expr array contains the expr
 BOOL
 CUtils::Contains(const CExpressionArray *exprs, CExpression *expr_to_match,
-				 BOOL fSkipCastsBetweenSameOpfamily)
+				 BOOL fMatchDistribution)
 {
 	if (nullptr == exprs)
 	{
@@ -5008,8 +5003,7 @@ CUtils::Contains(const CExpressionArray *exprs, CExpression *expr_to_match,
 	for (ULONG ul = 0; ul < exprs->Size() && !contains; ul++)
 	{
 		CExpression *expr = (*exprs)[ul];
-		contains =
-			CUtils::Equals(expr, expr_to_match, fSkipCastsBetweenSameOpfamily);
+		contains = CUtils::Equals(expr, expr_to_match, fMatchDistribution);
 	}
 	return contains;
 }

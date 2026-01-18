@@ -444,11 +444,10 @@ public:
 	static CExpressionArray *PdrgpexprDedup(CMemoryPool *mp,
 											CExpressionArray *pdrgpexpr);
 
-	// common handler for direct expression comparation CUtils::Equals
-	// and distrubtion mathing CUtils::EqualDistributions
+	// common handler for direct expression comparison CUtils::Equals
+	// and distribution mathing CUtils::EqualDistributions
 	static BOOL Equals(const CExpression *pexprLeft,
-					   const CExpression *pexprRight,
-					   bool fSkipCastsBetweenSameOpfamily);
+					   const CExpression *pexprRight, bool fMatchDistribution);
 
 	// deep equality of expression trees
 	static BOOL Equals(const CExpression *pexprLeft,
@@ -460,17 +459,16 @@ public:
 	// compare expression against an array of expressions
 	static BOOL FEqualAny(const CExpression *pexpr,
 						  const CExpressionArray *pdrgpexpr,
-						  BOOL fSkipCastsBetweenSameOpfamily);
+						  BOOL fMatchDistribution);
 
 	// deep equality of expression arrays
 	static BOOL Equals(const CExpressionArray *pdrgpexprLeft,
 					   const CExpressionArray *pdrgpexprRight);
 
 	// check if first expression array contains all expressions in second array
-	// nocommit: expalain?
 	static BOOL Contains(const CExpressionArray *pdrgpexprFst,
 						 const CExpressionArray *pdrgpexprSnd,
-						 bool fSkipCastsBetweenSameOpfamily);
+						 bool fMatchDistribution);
 
 	static BOOL ContainsDistributions(const CExpressionArray *pdrgpexprFst,
 									  const CExpressionArray *pdrgpexprSnd);
@@ -1009,10 +1007,8 @@ public:
 	static CExpression *MakeJoinWithoutInferredPreds(CMemoryPool *mp,
 													 CExpression *join_expr);
 
-	// nocommit: explain
 	static BOOL Contains(const CExpressionArray *exprs,
-						 CExpression *expr_to_match,
-						 BOOL fSkipCastsBetweenSameOpfamily);
+						 CExpression *expr_to_match, BOOL fMatchDistribution);
 
 	static BOOL ContainsDistribution(const CExpressionArray *exprs,
 									 CExpression *expr_to_match);
