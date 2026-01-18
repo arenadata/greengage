@@ -9,7 +9,7 @@ set enable_mergejoin = false;
 set enable_nestloop = false;
 set optimizer_trace_fallback = true;
 
--- start ignore
+-- start_ignore
 drop table if exists cst_int2;
 drop table if exists cst_int4;
 drop table if exists cst_int8;
@@ -18,7 +18,7 @@ drop table if exists cst_float8;
 drop table if exists cst_text;
 drop table if exists cst_int2_int4;
 drop table if exists cst_int4_int8;
--- end ingnore
+-- end_ignore
 
 create table cst_int2 as (select a::int2 from generate_series(0, 10) as a) distributed by (a);
 create table cst_int4 as (select a::int4 from generate_series(5, 15) as a) distributed by (a);
