@@ -38,6 +38,7 @@ function _main() {
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o non-existed-output||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -f allure_behave.formatter:AllureFormatter||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o /tmp/allure-results||g")"
+		export BEHAVE_FLAGS="$BEHAVE_FLAGS --verbose"
 		# Run inside a subshell so it does not pollute the environment after
 		# sourcing greengage_path
 		time (make_cluster)

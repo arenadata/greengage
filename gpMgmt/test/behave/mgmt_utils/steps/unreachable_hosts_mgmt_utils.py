@@ -74,7 +74,7 @@ def add_or_remove_blackhole_route(disconnected_hosts, spare_hosts, disconnect=Fa
 # do not disconnect the host from itself, as this adds nothing to the test
 def _blackhole_route_helper(disconnect_host, hosts, disconnect=False):
     cmd = "host {} | grep 'has address' | head -n 1 | cut -d ' ' -f 4".format(disconnect_host)
-    disconnect_addr = subprocess.check_output(["bash", "-c", cmd], stderr=subprocess.STDOUT)
+    disconnect_addr = subprocess.check_output(["bash", "-c", cmd])
     disconnect_addr = disconnect_addr.strip()
 
     for host in hosts:
@@ -86,7 +86,7 @@ def _blackhole_route_helper(disconnect_host, hosts, disconnect=False):
             subcmd = "delete"
 
         cmd = "sudo ip route {} {}".format(subcmd, disconnect_addr)
-        subprocess.check_output(["ssh", host, cmd], stderr=subprocess.STDOUT)
+        subprocess.check_output(["ssh", host, cmd])
 
 @given('all postgres processes are killed on "{disconnected}" hosts')
 @then('all postgres processes are killed on "{disconnected}" hosts')
