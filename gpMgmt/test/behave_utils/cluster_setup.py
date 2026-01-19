@@ -33,9 +33,9 @@ class TestCluster:
         if hosts:
             self.hosts = hosts
 
-        self.port_base = '20500'
+        self.port_base = '20000'
         self.master_port = os.environ.get('PGPORT', '10300')
-        self.mirror_port_base = '21500'
+        self.mirror_port_base = '21000'
 
         self.gpinitconfig_template = local_path('configs/gpinitconfig_template')
         self.gpinitconfig_mirror_template = local_path('configs/gpinitconfig_mirror_template')
