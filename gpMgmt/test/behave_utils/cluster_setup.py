@@ -47,9 +47,9 @@ class TestCluster:
         self.hosts_file = os.path.join(self.base_dir, 'hosts')
         self.gpexpand_file = os.path.join(self.base_dir, 'gpexpand_input')
 
-        self.primary_dir = os.path.join(self.base_dir, 'data/primary')
-        self.mirror_dir = os.path.join(self.base_dir, 'data/mirror')
-        self.master_dir = os.path.join(self.base_dir, 'data/master')
+        self.primary_dir = os.path.join(self.base_dir, 'primary')
+        self.mirror_dir = os.path.join(self.base_dir, 'mirror')
+        self.master_dir = os.path.join(self.base_dir, 'master')
 
         # Test metadata
         # Whether to do gpinitsystem or not
