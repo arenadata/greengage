@@ -18,7 +18,7 @@ Feature: gprecoverseg tests involving migrating to a new host
       And the cluster configuration has no segments where <down_sql>
       When the user runs <gprecoverseg_cmd>
       Then gprecoverseg should return a return code of 0
-      And pg_hba file "/data/gpdata/mirror/gpseg0/pg_hba.conf" on host "<acting_primary>" contains entries for "<used>"
+      And pg_hba file "/tmp/concourse_cluster/data/mirror/gpseg0/pg_hba.conf" on host "<acting_primary>" contains entries for "<used>"
       And the cluster configuration is saved for "<test_case>"
       And the "before" and "<test_case>" cluster configuration matches with the expected for gprecoverseg newhost
       And gprecoverseg should print "Skipping shared memory cleanup and gpsegstop on unreachable host" to stdout
@@ -47,7 +47,7 @@ Feature: gprecoverseg tests involving migrating to a new host
     And datadirs from "before" configuration for "sdw1" are created on "sdw5" with mode 755
     When the user runs "gprecoverseg -a -p sdw5 --hba-hostnames"
     Then gprecoverseg should return a return code of 1
-#    And pg_hba file "/data/gpdata/mirror/gpseg0/pg_hba.conf" on host "sdw2" contains entries for "sdw5"
+#    And pg_hba file "/tmp/concourse_cluster/data/mirror/gpseg0/pg_hba.conf" on host "sdw2" contains entries for "sdw5"
     And check if start failed for full recovery for mirrors with hostname sdw5
     And gpAdminLogs directory has "pg_basebackup*" files on sdw5
     And gpAdminLogs directory has "gpsegsetuprecovery*" files on all segment hosts
@@ -79,7 +79,7 @@ Feature: gprecoverseg tests involving migrating to a new host
     And datadirs from "before_recoverseg" configuration for "sdw1" are created on "sdw5" with mode 000
     When the user runs "gprecoverseg -a -p sdw5 --hba-hostnames"
     Then gprecoverseg should return a return code of 1
-#    And pg_hba file "/data/gpdata/mirror/gpseg0/pg_hba.conf" on host "sdw2" contains entries for "sdw5"
+#    And pg_hba file "/tmp/concourse_cluster/data/mirror/gpseg0/pg_hba.conf" on host "sdw2" contains entries for "sdw5"
     And check if moving the mirrors from sdw1 to sdw5 failed
     And gprecoverseg should print "Recovery Target instance port        = 20000" to stdout
     And gprecoverseg should print "Recovery Target instance port        = 20001" to stdout
