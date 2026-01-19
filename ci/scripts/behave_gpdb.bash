@@ -34,6 +34,10 @@ function _main() {
 		fi
 
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/ --tags=~concourse_cluster//g")"
+		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/ -f behave_utils.ci.formatter:CustomFormatter//g")"
+		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/ -o non-existed-output//g")"
+		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/ -f allure_behave.formatter:AllureFormatter//g")"
+		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s/ -o /tmp/allure-results//g")"
 		# Run inside a subshell so it does not pollute the environment after
 		# sourcing greengage_path
 		time (make_cluster)
