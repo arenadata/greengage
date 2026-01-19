@@ -168,9 +168,9 @@ def run_shell_command(cmdstr, cmdname = 'shell command', results={'rc':0, 'stdou
 
 def reset_hosts(hosts, test_base_dir):
 
-    primary_dir = os.path.join(test_base_dir, 'data', 'primary')
-    mirror_dir = os.path.join(test_base_dir, 'data', 'mirror')
-    master_dir = os.path.join(test_base_dir, 'data', 'master')
+    primary_dir = os.path.join(test_base_dir, 'primary')
+    mirror_dir = os.path.join(test_base_dir, 'mirror')
+    master_dir = os.path.join(test_base_dir, 'master')
 
     host_args = " ".join(map(lambda x: "-h %s" % x, hosts))
     reset_primary_dirs_cmd = "gpssh %s -e 'rm -rf %s; mkdir -p %s'" % (host_args, primary_dir, primary_dir)
