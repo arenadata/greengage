@@ -45,7 +45,7 @@ function _main() {
 		for CLUSTER in $CLUSTERS; do
 			# Run inside a subshell so it does not pollute the environment after
 			# sourcing greengage_path
-			time (make_cluster)
+			test -f gpdb_src/gpAux/gpdemo/gpdemo-env.sh || time (make_cluster)
 			time gen_env
 			time run_test
 		done
