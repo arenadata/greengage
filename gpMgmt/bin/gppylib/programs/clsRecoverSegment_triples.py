@@ -63,8 +63,9 @@ def is_pg_rewind_running(hostname, port):
             return res > 0
 
     except Exception as e:
-        raise Exception("Failed to query pg_stat_activity for segment hostname: {}, port: {}, error: {}".format(
-            hostname, str(port), str(e)))
+        import socket
+        raise Exception("Failed to query pg_stat_activity for segment hostname: {}, port: {}, hostname: {}, hostaddr: {}, error: {}".format(
+            hostname, str(port), socket.gethostname(), socket.gethostbyname(socket.gethostname()), str(e)))
 
 
 def extract_recovery_config_info(parts):
