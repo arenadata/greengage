@@ -45,12 +45,12 @@ function _main() {
 
 		HOSTS="cdw sdw1 sdw2 sdw3 sdw4 sdw5 sdw6"
 		for HOST in $HOSTS; do
+			IP="$( host $HOST | grep 'has address' | head -n 1 | cut -d ' ' -f 4 )"
 			for OTHER_HOST in $HOSTS; do
-			IP="$( host $OTHER_HOST | grep 'has address' | head -n 1 | cut -d ' ' -f 4 )"
-			if [[ $HOST != $OTHER_HOST ]]; then
-				echo "$IP $OTHER_HOST -> $HOST"
-				ssh $HOST "echo '$IP $OTHER_HOST' >> /etc/hosts"
-			fi
+				if [[ $HOST != $OTHER_HOST ]]; then
+					ssh $OTHER_HOST "sudo echo \"$IP $HOST\" >> /etc/hosts"
+				fi
+			done
 		done
 
 		for CLUSTER in $CLUSTERS; do
