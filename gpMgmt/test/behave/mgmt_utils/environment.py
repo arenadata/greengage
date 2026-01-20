@@ -33,7 +33,7 @@ def before_feature(context, feature):
         use_fixture(init_cluster, context, segments=segments)
 
     # we should be able to run gpexpand without having a cluster initialized
-    tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate',
+    tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate', 'gpmovemirrors',
                     'gpconfig', 'gpssh-exkeys', 'gpstop', 'gpinitsystem', 'cross_subnet',
                     'gplogfilter']
     if set(context.feature.tags).intersection(tags_to_skip):
