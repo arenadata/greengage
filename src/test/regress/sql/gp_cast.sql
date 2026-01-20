@@ -37,33 +37,33 @@ create table cst_int4_int8 as (select gen::int4 as a, gen::int8 as b from genera
 
 set optimizer_join_order = query;
 
-explain (verbose) select * from cst_int2 join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 join cst_int4 using(a);
 select * from cst_int2 join cst_int4 using(a);
 
-explain select * from cst_int2 join cst_int8 using(a);
+explain (verbose, costs off) select * from cst_int2 join cst_int8 using(a);
 select * from cst_int2 join cst_int8 using(a);
 
-explain (verbose) select * from cst_int4 join cst_int8 using(a);
+explain (verbose, costs off) select * from cst_int4 join cst_int8 using(a);
 select * from cst_int4 join cst_int8 using(a);
 
-explain (verbose) select * from cst_float4 join cst_float8 using(a);
+explain (verbose, costs off) select * from cst_float4 join cst_float8 using(a);
 select * from cst_float4 join cst_float8 using(a);
 
 -- Same thing with the sides swapped
-explain (verbose) select * from cst_int4 join cst_int2 using(a);
+explain (verbose, costs off) select * from cst_int4 join cst_int2 using(a);
 select * from cst_int4 join cst_int2 using(a);
 
-explain select * from cst_int8 join cst_int2 using(a);
+explain (verbose, costs off) select * from cst_int8 join cst_int2 using(a);
 select * from cst_int8 join cst_int2 using(a);
 
-explain (verbose) select * from cst_int8 join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int8 join cst_int4 using(a);
 select * from cst_int8 join cst_int4 using(a);
 
-explain (verbose) select * from cst_float8 join cst_float4 using(a);
+explain (verbose, costs off) select * from cst_float8 join cst_float4 using(a);
 select * from cst_float8 join cst_float4 using(a);
 
 -- Confirm that casting logic works recursively
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2
     join cst_int8 using(a)
     join cst_int4 using(a);
@@ -76,17 +76,17 @@ reset optimizer_join_order;
 
 
 -- Confirm that the same logic is correct for other join types
-explain (verbose) select * from cst_int2 full join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 full join cst_int4 using(a);
 select * from cst_int2 full join cst_int4 using(a);
 
 -- BUG: this test is failing for ORCA
-explain (verbose) select * from cst_int2 left join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 left join cst_int4 using(a);
 select * from cst_int2 left join cst_int4 using(a);
 
-explain (verbose) select * from cst_int2 right join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 right join cst_int4 using(a);
 select * from cst_int2 right join cst_int4 using(a);
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where exists (select *
               from cst_int2
@@ -97,7 +97,7 @@ where exists (select *
               from cst_int2
               where cst_int4.a = cst_int2.a);
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where not exists (select *
                   from cst_int2
@@ -108,14 +108,14 @@ where not exists (select *
                   from cst_int2
                   where cst_int4.a = cst_int2.a);
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where cst_int4.a not in (select * from cst_int2);
 
 select * from cst_int4
 where cst_int4.a not in (select * from cst_int2);
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2 natural join cst_int4;
 select * from cst_int2 natural join cst_int4;
 
@@ -124,28 +124,28 @@ select * from cst_int2 natural join cst_int4;
 --    The postgres-based planner should require a redistribution, because
 --    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression.
 --    ORCA, on the other hand, can see that redistribution is unnecessary in this case
-explain (verbose) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
+explain (verbose, costs off) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 
 
 -- The same thing, but with multiple casts in a row.
 -- Because the first cast tends to be converted directly to a conversion function,
 -- ORCA shouldn't be able to detect the first coercion and should require a redistribution.
-explain (verbose) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
+explain (verbose, costs off) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
 select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
 
 
 -- Сheck that we don't rule out necessary distributions
 -- Most basic cases
-explain (verbose) select * from cst_float4 join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_float4 join cst_int4 using(a);
 select * from cst_float4 join cst_int4 using(a);
 
-explain (verbose) select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
+explain (verbose, costs off) select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
 select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
 
 
 -- ORCA: in order for there queries to work, equivalent expressions should be matched correctly
-explain (verbose)
+explain (verbose, costs off)
 with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))
     join (int8_cte as cte_2 join cst_int4 using(a)) using(a);
@@ -154,7 +154,7 @@ with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))
     join (int8_cte as cte_2 join cst_int4 using(a)) using(a);
 
-explain (verbose)
+explain (verbose, costs off)
 with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))
     join (cst_int4 join int8_cte as cte_2 using(a)) using(a);
@@ -165,20 +165,20 @@ select * from (cst_int2 join int8_cte as cte_1 using(a))
 
 
 -- Test distribution by multiple keys
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.b and t1.b = t2.a);
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.b and t1.b = t2.a);
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int2 as t2 on (t1.a = t2.a);
 select * from cst_int2_int4 as t1 join cst_int2 as t2 on (t1.a = t2.a);
 
 set optimizer_join_order = query;
-explain (verbose)
+explain (verbose, costs off)
 with cst_int2_int4_copy as (select * from cst_int2_int4)
 select * from cst_int2_int4
     natural join cst_int4_int8
