@@ -328,6 +328,7 @@ CTranslatorQueryToDXL::CheckUnsupportedNodeTypes(Query *query)
 void
 CTranslatorQueryToDXL::CheckSirvFuncsWithoutFromClause(Query *query)
 {
+#if 0
 	// if there is a FROM clause or if target list is empty, look no further
 	if ((nullptr != query->jointree &&
 		 0 < gpdb::ListLength(query->jointree->fromlist)) ||
@@ -342,6 +343,10 @@ CTranslatorQueryToDXL::CheckSirvFuncsWithoutFromClause(Query *query)
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("SIRV functions"));
 	}
+#else
+	(void) query;
+	return;
+#endif
 }
 
 //---------------------------------------------------------------------------
@@ -355,7 +360,6 @@ CTranslatorQueryToDXL::CheckSirvFuncsWithoutFromClause(Query *query)
 BOOL
 CTranslatorQueryToDXL::HasSirvFunctions(Node *node) const
 {
-#if 0
 	GPOS_ASSERT(nullptr != node);
 
 	List *function_list = gpdb::ExtractNodesExpression(
@@ -376,10 +380,6 @@ CTranslatorQueryToDXL::HasSirvFunctions(Node *node) const
 	gpdb::ListFree(function_list);
 
 	return has_sirv;
-#else
-	(void) node;
-	return false;
-#endif
 }
 
 //---------------------------------------------------------------------------
@@ -3977,12 +3977,14 @@ CTranslatorQueryToDXL::TranslateTVFToDXL(const RangeTblEntry *rte,
 
 	FuncExpr *funcexpr = (FuncExpr *) rtfunc->funcexpr;
 
+#if 0
 	// check if arguments contain SIRV functions
 	if (NIL != funcexpr->args && HasSirvFunctions((Node *) funcexpr->args))
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("SIRV functions"));
 	}
+#endif
 
 	ListCell *lc = nullptr;
 	ForEach(lc, funcexpr->args)

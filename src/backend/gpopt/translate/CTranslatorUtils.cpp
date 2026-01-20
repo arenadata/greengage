@@ -280,6 +280,7 @@ CTranslatorUtils::ConvertToCDXLLogicalTVF(CMemoryPool *mp,
 	}
 
 	FuncExpr *funcexpr = (FuncExpr *) rtfunc->funcexpr;
+#if 0
 	// In the planner, scalar functions that are volatile (SIRV) or read or modify SQL
 	// data get patched into an InitPlan. This is not supported in the optimizer
 	if (IsSirvFunc(mp, md_accessor, funcexpr->funcid))
@@ -287,6 +288,7 @@ CTranslatorUtils::ConvertToCDXLLogicalTVF(CMemoryPool *mp,
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("SIRV functions"));
 	}
+#endif
 	// get function id
 	CMDIdGPDB *mdid_func =
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, funcexpr->funcid);
