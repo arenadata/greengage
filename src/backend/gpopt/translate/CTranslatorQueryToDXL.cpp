@@ -355,6 +355,7 @@ CTranslatorQueryToDXL::CheckSirvFuncsWithoutFromClause(Query *query)
 BOOL
 CTranslatorQueryToDXL::HasSirvFunctions(Node *node) const
 {
+#if 0
 	GPOS_ASSERT(nullptr != node);
 
 	List *function_list = gpdb::ExtractNodesExpression(
@@ -375,6 +376,10 @@ CTranslatorQueryToDXL::HasSirvFunctions(Node *node) const
 	gpdb::ListFree(function_list);
 
 	return has_sirv;
+#else
+	(void) node;
+	return false;
+#endif
 }
 
 //---------------------------------------------------------------------------
