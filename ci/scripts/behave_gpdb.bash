@@ -5,6 +5,8 @@ set -eox pipefail
 CWDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../concourse/scripts" && pwd )"
 source "${CWDIR}/common.bash"
 
+CLUSTERS="~concourse_cluster,demo_cluster concourse_cluster"
+
 function gen_env(){
 		cat > /opt/run_test.sh <<-EOF
 		set -ex
@@ -15,7 +17,7 @@ function gen_env(){
 
 		cd "\${1}/gpdb_src/gpMgmt/"
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
-		BEHAVE_FLAGS="${BEHAVE_FLAGS}"
+		BEHAVE_FLAGS="${BEHAVE_FLAGS} --tags=${CLUSTER}"
 		if [ ! -z "\${BEHAVE_TAGS}" ]; then
 				make -f Makefile.behave behave tags=\${BEHAVE_TAGS}
 		else
@@ -33,24 +35,21 @@ function _main() {
 				exit 1
 		fi
 
+		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| --tags=~concourse_cluster||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -f behave_utils.ci.formatter:CustomFormatter||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o non-existed-output||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -f allure_behave.formatter:AllureFormatter||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o /tmp/allure-results||g")"
 		export BEHAVE_FLAGS="$BEHAVE_FLAGS --verbose"
+
 		# Run inside a subshell so it does not pollute the environment after
 		# sourcing greengage_path
 		time (make_cluster)
 
-		time gen_env
-
-		time run_test
-
-		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s|~concourse_cluster|concourse_cluster|g")"
-
-		time gen_env
-
-		time run_test
+		for CLUSTER in $CLUSTERS; do
+			time gen_env
+			time run_test
+		done
 }
 
 _main "$@"
