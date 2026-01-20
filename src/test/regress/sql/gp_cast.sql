@@ -120,9 +120,9 @@ select * from cst_int2 natural join cst_int4;
 select * from cst_int2 natural join cst_int4;
 
 
--- Here, insead of an implicit cast, an explicit one is present.
+-- Here, instead of an implicit cast, an explicit one is present.
 --    The postgres-based planner should require a redistribution, because
---    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression
+--    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression.
 --    ORCA, on the other hand, can see that redistribution is unnecessary in this case
 explain (verbose) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
@@ -130,7 +130,7 @@ select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 
 -- The same thing, but with multiple casts in a row.
 -- Because the first cast tends to be converted directly to a conversion function,
--- ORCA shouldn't be able detect to the first coercion and should require a redistribution.
+-- ORCA shouldn't be able to detect the first coercion and should require a redistribution.
 explain (verbose) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
 select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
 
@@ -144,7 +144,7 @@ explain (verbose) select * from cst_int4 join cst_text on cst_int4.a = cst_text.
 select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
 
 
--- ORCA: in order for there queries to work, equivalent expressions should be matched corretly
+-- ORCA: in order for there queries to work, equivalent expressions should be matched correctly
 explain (verbose)
 with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))

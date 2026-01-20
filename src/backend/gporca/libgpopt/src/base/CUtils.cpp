@@ -1497,7 +1497,7 @@ CUtils::Equals(const CExpressionArray *pdrgpexprLeft,
 }
 
 // common handler for direct expression comparation CUtils::Equals
-// and distrubtion mathing CUtils::EqualDistributions
+// and distribution matching CUtils::EqualDistributions
 BOOL
 CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 			   bool fMatchDistribution)
