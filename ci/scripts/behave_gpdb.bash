@@ -41,6 +41,7 @@ function _main() {
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -f allure_behave.formatter:AllureFormatter||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o /tmp/allure-results||g")"
 		export BEHAVE_FLAGS="$BEHAVE_FLAGS --verbose"
+		export LANG=en_US.UTF-8
 
 		for CLUSTER in $CLUSTERS; do
 			# Run inside a subshell so it does not pollute the environment after
