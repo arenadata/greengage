@@ -7,24 +7,6 @@ set optimizer_enable_nljoin = false;
 set enable_mergejoin = false;
 set enable_nestloop = false;
 set optimizer_trace_fallback = true;
--- start_ignore
-drop table if exists cst_int2;
-NOTICE:  table "cst_int2" does not exist, skipping
-drop table if exists cst_int4;
-NOTICE:  table "cst_int4" does not exist, skipping
-drop table if exists cst_int8;
-NOTICE:  table "cst_int8" does not exist, skipping
-drop table if exists cst_float4;
-NOTICE:  table "cst_float4" does not exist, skipping
-drop table if exists cst_float8;
-NOTICE:  table "cst_float8" does not exist, skipping
-drop table if exists cst_text;
-NOTICE:  table "cst_text" does not exist, skipping
-drop table if exists cst_int2_int4;
-NOTICE:  table "cst_int2_int4" does not exist, skipping
-drop table if exists cst_int4_int8;
-NOTICE:  table "cst_int4_int8" does not exist, skipping
--- end_ignore
 create table cst_int2 as (select a::int2 from generate_series(0, 10) as a) distributed by (a);
 create table cst_int4 as (select a::int4 from generate_series(5, 15) as a) distributed by (a);
 create table cst_int8 as (select a::int8 from generate_series(10, 20) as a) distributed by (a);
@@ -38,19 +20,19 @@ create table cst_int4_int8 as (select gen::int4 as a, gen::int8 as b from genera
 --    The postgres-based planner has operators that work on different types
 --    ORCA doesn't support such operations, but it knows when a cast doesn't change a distribution
 set optimizer_join_order = query;
-explain (verbose) select * from cst_int2 join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 join cst_int4 using(a);
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
+   ->  Hash Join
          Output: cst_int4.a
          Hash Cond: ((cst_int2.a)::integer = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -67,17 +49,23 @@ select * from cst_int2 join cst_int4 using(a);
  10
 (6 rows)
 
-explain select * from cst_int2 join cst_int8 using(a);
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+explain (verbose, costs off) select * from cst_int2 join cst_int8 using(a);
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_int8.a
+   ->  Hash Join
+         Output: cst_int8.a
          Hash Cond: ((cst_int2.a)::bigint = cst_int8.a)
-         ->  Seq Scan on cst_int2  (cost=0.00..431.00 rows=1 width=2)
-         ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-               ->  Seq Scan on cst_int8  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on public.cst_int2
+               Output: cst_int2.a
+         ->  Hash
+               Output: cst_int8.a
+               ->  Seq Scan on public.cst_int8
+                     Output: cst_int8.a
  Optimizer: GPORCA
-(7 rows)
+ Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
+(13 rows)
 
 select * from cst_int2 join cst_int8 using(a);
  a  
@@ -85,19 +73,19 @@ select * from cst_int2 join cst_int8 using(a);
  10
 (1 row)
 
-explain (verbose) select * from cst_int4 join cst_int8 using(a);
+explain (verbose, costs off) select * from cst_int4 join cst_int8 using(a);
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: ((cst_int4.a)::bigint = cst_int8.a)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=8)
+         ->  Hash
                Output: cst_int8.a
-               ->  Seq Scan on public.cst_int8  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on public.cst_int8
                      Output: cst_int8.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -114,19 +102,19 @@ select * from cst_int4 join cst_int8 using(a);
  14
 (6 rows)
 
-explain (verbose) select * from cst_float4 join cst_float8 using(a);
+explain (verbose, costs off) select * from cst_float4 join cst_float8 using(a);
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float8.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+   ->  Hash Join
          Output: cst_float8.a
          Hash Cond: ((cst_float4.a)::double precision = cst_float8.a)
-         ->  Seq Scan on public.cst_float4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_float4
                Output: cst_float4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=8)
+         ->  Hash
                Output: cst_float8.a
-               ->  Seq Scan on public.cst_float8  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on public.cst_float8
                      Output: cst_float8.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -159,19 +147,19 @@ select * from cst_float4 join cst_float8 using(a);
 (21 rows)
 
 -- Same thing with the sides swapped
-explain (verbose) select * from cst_int4 join cst_int2 using(a);
+explain (verbose, costs off) select * from cst_int4 join cst_int2 using(a);
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
+   ->  Hash Join
          Output: cst_int4.a
          Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -188,17 +176,23 @@ select * from cst_int4 join cst_int2 using(a);
  10
 (6 rows)
 
-explain select * from cst_int8 join cst_int2 using(a);
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+explain (verbose, costs off) select * from cst_int8 join cst_int2 using(a);
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_int8.a
+   ->  Hash Join
+         Output: cst_int8.a
          Hash Cond: (cst_int8.a = (cst_int2.a)::bigint)
-         ->  Seq Scan on cst_int8  (cost=0.00..431.00 rows=1 width=8)
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
-               ->  Seq Scan on cst_int2  (cost=0.00..431.00 rows=1 width=2)
+         ->  Seq Scan on public.cst_int8
+               Output: cst_int8.a
+         ->  Hash
+               Output: cst_int2.a
+               ->  Seq Scan on public.cst_int2
+                     Output: cst_int2.a
  Optimizer: GPORCA
-(7 rows)
+ Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
+(13 rows)
 
 select * from cst_int8 join cst_int2 using(a);
  a  
@@ -206,19 +200,19 @@ select * from cst_int8 join cst_int2 using(a);
  10
 (1 row)
 
-explain (verbose) select * from cst_int8 join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int8 join cst_int4 using(a);
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: (cst_int8.a = (cst_int4.a)::bigint)
-         ->  Seq Scan on public.cst_int8  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on public.cst_int8
                Output: cst_int8.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -235,19 +229,19 @@ select * from cst_int8 join cst_int4 using(a);
  15
 (6 rows)
 
-explain (verbose) select * from cst_float8 join cst_float4 using(a);
+explain (verbose, costs off) select * from cst_float8 join cst_float4 using(a);
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float8.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+   ->  Hash Join
          Output: cst_float8.a
          Hash Cond: (cst_float8.a = (cst_float4.a)::double precision)
-         ->  Seq Scan on public.cst_float8  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on public.cst_float8
                Output: cst_float8.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+         ->  Hash
                Output: cst_float4.a
-               ->  Seq Scan on public.cst_float4  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on public.cst_float4
                      Output: cst_float4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -280,29 +274,29 @@ select * from cst_float8 join cst_float4 using(a);
 (21 rows)
 
 -- Confirm that casting logic works recursively
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2
     join cst_int8 using(a)
     join cst_int4 using(a);
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1293.00 rows=1 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=0.00..1293.00 rows=1 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: (cst_int8.a = (cst_int4.a)::bigint)
-         ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+         ->  Hash Join
                Output: cst_int8.a
                Hash Cond: ((cst_int2.a)::bigint = cst_int8.a)
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
-               ->  Hash  (cost=431.00..431.00 rows=1 width=8)
+               ->  Hash
                      Output: cst_int8.a
-                     ->  Seq Scan on public.cst_int8  (cost=0.00..431.00 rows=1 width=8)
+                     ->  Seq Scan on public.cst_int8
                            Output: cst_int8.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -318,19 +312,19 @@ select * from cst_int2
 
 reset optimizer_join_order;
 -- Confirm that the same logic is correct for other join types
-explain (verbose) select * from cst_int2 full join cst_int4 using(a);
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=3 width=4)
+explain (verbose, costs off) select * from cst_int2 full join cst_int4 using(a);
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: (COALESCE((cst_int2.a)::integer, cst_int4.a))
-   ->  Hash Full Join  (cost=0.00..862.00 rows=1 width=6)
+   ->  Hash Full Join
          Output: COALESCE((cst_int2.a)::integer, cst_int4.a)
          Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -358,21 +352,21 @@ select * from cst_int2 full join cst_int4 using(a);
 (16 rows)
 
 -- BUG: this test is failing for ORCA
-explain (verbose) select * from cst_int2 left join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 left join cst_int4 using(a);
 INFO:  GPORCA failed to produce a plan, falling back to Postgres-based planner
-DETAIL:  CTranslatorQueryToDXL.cpp:4199: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..310443.83 rows=9851490 width=4)
+DETAIL:  CTranslatorQueryToDXL.cpp:4201: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: ((cst_int2.a)::integer)
-   ->  Hash Left Join  (cost=756.25..179090.62 rows=3283830 width=4)
+   ->  Hash Left Join
          Output: cst_int2.a
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -380,7 +374,7 @@ DETAIL:  CTranslatorQueryToDXL.cpp:4199: Failed assertion: ((((const Node*)(join
 
 select * from cst_int2 left join cst_int4 using(a);
 INFO:  GPORCA failed to produce a plan, falling back to Postgres-based planner
-DETAIL:  CTranslatorQueryToDXL.cpp:4199: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
+DETAIL:  CTranslatorQueryToDXL.cpp:4201: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
  a  
 ----
   0
@@ -396,19 +390,19 @@ DETAIL:  CTranslatorQueryToDXL.cpp:4199: Failed assertion: ((((const Node*)(join
  10
 (11 rows)
 
-explain (verbose) select * from cst_int2 right join cst_int4 using(a);
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=2 width=4)
+explain (verbose, costs off) select * from cst_int2 right join cst_int4 using(a);
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Left Join  (cost=0.00..862.00 rows=1 width=4)
+   ->  Hash Left Join
          Output: cst_int4.a
          Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -430,24 +424,24 @@ select * from cst_int2 right join cst_int4 using(a);
  14
 (11 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where exists (select *
               from cst_int2
               where cst_int4.a = cst_int2.a);
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Semi Join  (cost=0.00..862.00 rows=1 width=4)
+   ->  Hash Semi Join
          Output: cst_int4.a
          Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
                Filter: (NOT (cst_int4.a IS NULL))
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -467,23 +461,23 @@ where exists (select *
  10
 (6 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where not exists (select *
                   from cst_int2
                   where cst_int4.a = cst_int2.a);
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Anti Join  (cost=0.00..862.00 rows=1 width=4)
+   ->  Hash Anti Join
          Output: cst_int4.a
          Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -502,23 +496,23 @@ where not exists (select *
  15
 (5 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where cst_int4.a not in (select * from cst_int2);
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
- Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=4)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Hash Left Anti Semi (Not-In) Join
    Output: cst_int4.a
    Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
          Output: cst_int4.a
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-   ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+   ->  Hash
          Output: cst_int2.a
-         ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=2)
+         ->  Gather Motion 3:1  (slice2; segments: 3)
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -535,20 +529,20 @@ where cst_int4.a not in (select * from cst_int2);
  14
 (5 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2 natural join cst_int4;
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
+   ->  Hash Join
          Output: cst_int4.a
          Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -565,23 +559,23 @@ select * from cst_int2 natural join cst_int4;
   8
 (6 rows)
 
--- Here, insead of an implicit cast, an explicit one is present.
+-- Here, instead of an implicit cast, an explicit one is present.
 --    The postgres-based planner should require a redistribution, because
---    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression
+--    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression.
 --    ORCA, on the other hand, can see that redistribution is unnecessary in this case
-explain (verbose) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=6)
+explain (verbose, costs off) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int2.a, cst_int4.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=6)
+   ->  Hash Join
          Output: cst_int2.a, cst_int4.a
          Hash Cond: (cst_int4.a = (cst_int2.a)::integer)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -600,23 +594,23 @@ select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 
 -- The same thing, but with multiple casts in a row.
 -- Because the first cast tends to be converted directly to a conversion function,
--- ORCA shouldn't be able detect to the first coercion and should require a redistribution.
-explain (verbose) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+-- ORCA shouldn't be able to detect the first coercion and should require a redistribution.
+explain (verbose, costs off) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float4_f.a, cst_float4_s.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+   ->  Hash Join
          Output: cst_float4_f.a, cst_float4_s.a
          Hash Cond: ((int4(cst_float4_f.a))::real = cst_float4_s.a)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: cst_float4_f.a
                Hash Key: (int4(cst_float4_f.a))::real
-               ->  Seq Scan on public.cst_float4 cst_float4_f  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on public.cst_float4 cst_float4_f
                      Output: cst_float4_f.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+         ->  Hash
                Output: cst_float4_s.a
-               ->  Seq Scan on public.cst_float4 cst_float4_s  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on public.cst_float4 cst_float4_s
                      Output: cst_float4_s.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -650,22 +644,22 @@ select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_
 
 -- Сheck that we don't rule out necessary distributions
 -- Most basic cases
-explain (verbose) select * from cst_float4 join cst_int4 using(a);
-                                              QUERY PLAN                                              
-------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
+explain (verbose, costs off) select * from cst_float4 join cst_int4 using(a);
+                                       QUERY PLAN                                       
+----------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float4.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
+   ->  Hash Join
          Output: cst_float4.a
          Hash Cond: ((cst_float4.a)::double precision = (cst_int4.a)::double precision)
-         ->  Seq Scan on public.cst_float4  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on public.cst_float4
                Output: cst_float4.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Output: cst_int4.a
                      Hash Key: (cst_int4.a)::double precision
-                     ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+                     ->  Seq Scan on public.cst_int4
                            Output: cst_int4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -687,22 +681,22 @@ select * from cst_float4 join cst_int4 using(a);
  15
 (11 rows)
 
-explain (verbose) select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=12)
+explain (verbose, costs off) select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a, cst_text.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=12)
+   ->  Hash Join
          Output: cst_int4.a, cst_text.a
          Hash Cond: ((cst_text.a)::integer = cst_int4.a)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: cst_text.a
                Hash Key: (cst_text.a)::integer
-               ->  Seq Scan on public.cst_text  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on public.cst_text
                      Output: cst_text.a
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -724,43 +718,43 @@ select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
   6 | 6
 (11 rows)
 
--- ORCA: in order for there queries to work, equivalent expressions should be matched corretly
-explain (verbose)
+-- ORCA: in order for there queries to work, equivalent expressions should be matched correctly
+explain (verbose, costs off)
 with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))
     join (int8_cte as cte_2 join cst_int4 using(a)) using(a);
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2155.00 rows=1 width=8)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: share0_ref3.a
-   ->  Sequence  (cost=0.00..2155.00 rows=1 width=8)
+   ->  Sequence
          Output: share0_ref3.a
-         ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=1)
+         ->  Shared Scan (share slice:id 1:0)
                Output: share0_ref1.a
-               ->  Seq Scan on public.cst_int8  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on public.cst_int8
                      Output: cst_int8.a
-         ->  Hash Join  (cost=0.00..1724.00 rows=1 width=8)
+         ->  Hash Join
                Output: share0_ref3.a
                Hash Cond: (share0_ref3.a = share0_ref2.a)
-               ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+               ->  Hash Join
                      Output: share0_ref3.a
                      Hash Cond: (share0_ref3.a = (cst_int2.a)::bigint)
-                     ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=8)
+                     ->  Shared Scan (share slice:id 1:0)
                            Output: share0_ref3.a
-                     ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+                     ->  Hash
                            Output: cst_int2.a
-                           ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+                           ->  Seq Scan on public.cst_int2
                                  Output: cst_int2.a
-               ->  Hash  (cost=862.00..862.00 rows=1 width=8)
+               ->  Hash
                      Output: share0_ref2.a
-                     ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+                     ->  Hash Join
                            Output: share0_ref2.a
                            Hash Cond: (share0_ref2.a = (cst_int4.a)::bigint)
-                           ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Shared Scan (share slice:id 1:0)
                                  Output: share0_ref2.a
-                           ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+                           ->  Hash
                                  Output: cst_int4.a
-                                 ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+                                 ->  Seq Scan on public.cst_int4
                                        Output: cst_int4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -774,42 +768,42 @@ select * from (cst_int2 join int8_cte as cte_1 using(a))
  10
 (1 row)
 
-explain (verbose)
+explain (verbose, costs off)
 with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))
     join (cst_int4 join int8_cte as cte_2 using(a)) using(a);
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2155.00 rows=1 width=8)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: share0_ref3.a
-   ->  Sequence  (cost=0.00..2155.00 rows=1 width=8)
+   ->  Sequence
          Output: share0_ref3.a
-         ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=1)
+         ->  Shared Scan (share slice:id 1:0)
                Output: share0_ref1.a
-               ->  Seq Scan on public.cst_int8  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on public.cst_int8
                      Output: cst_int8.a
-         ->  Hash Join  (cost=0.00..1724.00 rows=1 width=8)
+         ->  Hash Join
                Output: share0_ref3.a
                Hash Cond: (share0_ref3.a = share0_ref2.a)
-               ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+               ->  Hash Join
                      Output: share0_ref3.a
                      Hash Cond: (share0_ref3.a = (cst_int2.a)::bigint)
-                     ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=8)
+                     ->  Shared Scan (share slice:id 1:0)
                            Output: share0_ref3.a
-                     ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+                     ->  Hash
                            Output: cst_int2.a
-                           ->  Seq Scan on public.cst_int2  (cost=0.00..431.00 rows=1 width=2)
+                           ->  Seq Scan on public.cst_int2
                                  Output: cst_int2.a
-               ->  Hash  (cost=862.00..862.00 rows=1 width=8)
+               ->  Hash
                      Output: share0_ref2.a
-                     ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+                     ->  Hash Join
                            Output: share0_ref2.a
                            Hash Cond: (share0_ref2.a = (cst_int4.a)::bigint)
-                           ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Shared Scan (share slice:id 1:0)
                                  Output: share0_ref2.a
-                           ->  Hash  (cost=431.00..431.00 rows=1 width=4)
+                           ->  Hash
                                  Output: cst_int4.a
-                                 ->  Seq Scan on public.cst_int4  (cost=0.00..431.00 rows=1 width=4)
+                                 ->  Seq Scan on public.cst_int4
                                        Output: cst_int4.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -824,20 +818,20 @@ select * from (cst_int2 join int8_cte as cte_1 using(a))
 (1 row)
 
 -- Test distribution by multiple keys
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=18)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.a, t1.b, t2.a, t2.b
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=18)
+   ->  Hash Join
          Output: t1.a, t1.b, t2.a, t2.b
          Hash Cond: ((t2.a = (t1.a)::integer) AND (t2.b = (t1.b)::bigint))
-         ->  Seq Scan on public.cst_int4_int8 t2  (cost=0.00..431.00 rows=1 width=12)
+         ->  Seq Scan on public.cst_int4_int8 t2
                Output: t2.a, t2.b
-         ->  Hash  (cost=431.00..431.00 rows=1 width=6)
+         ->  Hash
                Output: t1.a, t1.b
-               ->  Seq Scan on public.cst_int2_int4 t1  (cost=0.00..431.00 rows=1 width=6)
+               ->  Seq Scan on public.cst_int2_int4 t1
                      Output: t1.a, t1.b
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -858,23 +852,23 @@ select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t
   7 |  7 |  7 |  7
 (10 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.b and t1.b = t2.a);
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=18)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.a, t1.b, t2.a, t2.b
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=18)
+   ->  Hash Join
          Output: t1.a, t1.b, t2.a, t2.b
          Hash Cond: ((t2.b = (t1.a)::bigint) AND (t2.a = t1.b))
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: t2.a, t2.b
                Hash Key: t2.b, t2.a
-               ->  Seq Scan on public.cst_int4_int8 t2  (cost=0.00..431.00 rows=1 width=12)
+               ->  Seq Scan on public.cst_int4_int8 t2
                      Output: t2.a, t2.b
-         ->  Hash  (cost=431.00..431.00 rows=1 width=6)
+         ->  Hash
                Output: t1.a, t1.b
-               ->  Seq Scan on public.cst_int2_int4 t1  (cost=0.00..431.00 rows=1 width=6)
+               ->  Seq Scan on public.cst_int2_int4 t1
                      Output: t1.a, t1.b
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -895,22 +889,22 @@ select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.b and t
  10 | 10 | 10 | 10
 (10 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int2 as t2 on (t1.a = t2.a);
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.a, t1.b, t2.a
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
+   ->  Hash Join
          Output: t1.a, t1.b, t2.a
          Hash Cond: (t1.a = t2.a)
-         ->  Seq Scan on public.cst_int2_int4 t1  (cost=0.00..431.00 rows=1 width=6)
+         ->  Seq Scan on public.cst_int2_int4 t1
                Output: t1.a, t1.b
-         ->  Hash  (cost=431.00..431.00 rows=1 width=2)
+         ->  Hash
                Output: t2.a
-               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=2)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      Output: t2.a
-                     ->  Seq Scan on public.cst_int2 t2  (cost=0.00..431.00 rows=1 width=2)
+                     ->  Seq Scan on public.cst_int2 t2
                            Output: t2.a
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -932,30 +926,30 @@ select * from cst_int2_int4 as t1 join cst_int2 as t2 on (t1.a = t2.a);
 (10 rows)
 
 set optimizer_join_order = query;
-explain (verbose)
+explain (verbose, costs off)
 with cst_int2_int4_copy as (select * from cst_int2_int4)
 select * from cst_int2_int4
     natural join cst_int4_int8
     natural join cst_int2_int4_copy;
                                                          QUERY PLAN                                                          
 -----------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1293.00 rows=1 width=12)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4_int8.a, cst_int4_int8.b
-   ->  Hash Join  (cost=0.00..1293.00 rows=1 width=12)
+   ->  Hash Join
          Output: cst_int4_int8.a, cst_int4_int8.b
          Hash Cond: ((cst_int4_int8.a = (cst_int2_int4_1.a)::integer) AND (cst_int4_int8.b = (cst_int2_int4_1.b)::bigint))
-         ->  Hash Join  (cost=0.00..862.00 rows=1 width=12)
+         ->  Hash Join
                Output: cst_int4_int8.a, cst_int4_int8.b
                Hash Cond: (((cst_int2_int4.a)::integer = cst_int4_int8.a) AND ((cst_int2_int4.b)::bigint = cst_int4_int8.b))
-               ->  Seq Scan on public.cst_int2_int4  (cost=0.00..431.00 rows=1 width=6)
+               ->  Seq Scan on public.cst_int2_int4
                      Output: cst_int2_int4.a, cst_int2_int4.b
-               ->  Hash  (cost=431.00..431.00 rows=1 width=12)
+               ->  Hash
                      Output: cst_int4_int8.a, cst_int4_int8.b
-                     ->  Seq Scan on public.cst_int4_int8  (cost=0.00..431.00 rows=1 width=12)
+                     ->  Seq Scan on public.cst_int4_int8
                            Output: cst_int4_int8.a, cst_int4_int8.b
-         ->  Hash  (cost=431.00..431.00 rows=1 width=6)
+         ->  Hash
                Output: cst_int2_int4_1.a, cst_int2_int4_1.b
-               ->  Seq Scan on public.cst_int2_int4 cst_int2_int4_1  (cost=0.00..431.00 rows=1 width=6)
+               ->  Seq Scan on public.cst_int2_int4 cst_int2_int4_1
                      Output: cst_int2_int4_1.a, cst_int2_int4_1.b
  Optimizer: GPORCA
  Settings: optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'

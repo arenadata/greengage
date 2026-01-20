@@ -7,24 +7,6 @@ set optimizer_enable_nljoin = false;
 set enable_mergejoin = false;
 set enable_nestloop = false;
 set optimizer_trace_fallback = true;
--- start_ignore
-drop table if exists cst_int2;
-NOTICE:  table "cst_int2" does not exist, skipping
-drop table if exists cst_int4;
-NOTICE:  table "cst_int4" does not exist, skipping
-drop table if exists cst_int8;
-NOTICE:  table "cst_int8" does not exist, skipping
-drop table if exists cst_float4;
-NOTICE:  table "cst_float4" does not exist, skipping
-drop table if exists cst_float8;
-NOTICE:  table "cst_float8" does not exist, skipping
-drop table if exists cst_text;
-NOTICE:  table "cst_text" does not exist, skipping
-drop table if exists cst_int2_int4;
-NOTICE:  table "cst_int2_int4" does not exist, skipping
-drop table if exists cst_int4_int8;
-NOTICE:  table "cst_int4_int8" does not exist, skipping
--- end_ignore
 create table cst_int2 as (select a::int2 from generate_series(0, 10) as a) distributed by (a);
 create table cst_int4 as (select a::int4 from generate_series(5, 15) as a) distributed by (a);
 create table cst_int8 as (select a::int8 from generate_series(10, 20) as a) distributed by (a);
@@ -38,19 +20,19 @@ create table cst_int4_int8 as (select gen::int4 as a, gen::int8 as b from genera
 --    The postgres-based planner has operators that work on different types
 --    ORCA doesn't support such operations, but it knows when a cast doesn't change a distribution
 set optimizer_join_order = query;
-explain (verbose) select * from cst_int2 join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 join cst_int4 using(a);
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..302234.25 rows=9851490 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Join  (cost=756.25..170881.05 rows=3283830 width=4)
+   ->  Hash Join
          Output: cst_int4.a
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -67,17 +49,23 @@ select * from cst_int2 join cst_int4 using(a);
  10
 (6 rows)
 
-explain select * from cst_int2 join cst_int8 using(a);
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=679.75..270274.25 rows=8808030 width=8)
-   ->  Hash Join  (cost=679.75..152833.85 rows=2936010 width=8)
+explain (verbose, costs off) select * from cst_int2 join cst_int8 using(a);
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_int8.a
+   ->  Hash Join
+         Output: cst_int8.a
          Hash Cond: (cst_int2.a = cst_int8.a)
-         ->  Seq Scan on cst_int2  (cost=0.00..375.00 rows=34100 width=2)
-         ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
-               ->  Seq Scan on cst_int8  (cost=0.00..321.00 rows=28700 width=8)
+         ->  Seq Scan on public.cst_int2
+               Output: cst_int2.a
+         ->  Hash
+               Output: cst_int8.a
+               ->  Seq Scan on public.cst_int8
+                     Output: cst_int8.a
  Optimizer: Postgres-based planner
-(7 rows)
+ Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
+(13 rows)
 
 select * from cst_int2 join cst_int8 using(a);
  a  
@@ -85,19 +73,19 @@ select * from cst_int2 join cst_int8 using(a);
  10
 (1 row)
 
-explain (verbose) select * from cst_int4 join cst_int8 using(a);
+explain (verbose, costs off) select * from cst_int4 join cst_int8 using(a);
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=679.75..254464.25 rows=8291430 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=679.75..143911.85 rows=2763810 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: (cst_int4.a = cst_int8.a)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
+         ->  Hash
                Output: cst_int8.a
-               ->  Seq Scan on public.cst_int8  (cost=0.00..321.00 rows=28700 width=8)
+               ->  Seq Scan on public.cst_int8
                      Output: cst_int8.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -114,19 +102,19 @@ select * from cst_int4 join cst_int8 using(a);
  15
 (6 rows)
 
-explain (verbose) select * from cst_float4 join cst_float8 using(a);
+explain (verbose, costs off) select * from cst_float4 join cst_float8 using(a);
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=679.75..254464.25 rows=8291430 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float8.a
-   ->  Hash Join  (cost=679.75..143911.85 rows=2763810 width=8)
+   ->  Hash Join
          Output: cst_float8.a
          Hash Cond: (cst_float4.a = cst_float8.a)
-         ->  Seq Scan on public.cst_float4  (cost=0.00..355.00 rows=32100 width=4)
+         ->  Seq Scan on public.cst_float4
                Output: cst_float4.a
-         ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
+         ->  Hash
                Output: cst_float8.a
-               ->  Seq Scan on public.cst_float8  (cost=0.00..321.00 rows=28700 width=8)
+               ->  Seq Scan on public.cst_float8
                      Output: cst_float8.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -159,19 +147,19 @@ select * from cst_float4 join cst_float8 using(a);
 (21 rows)
 
 -- Same thing with the sides swapped
-explain (verbose) select * from cst_int4 join cst_int2 using(a);
+explain (verbose, costs off) select * from cst_int4 join cst_int2 using(a);
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..302234.25 rows=9851490 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Join  (cost=756.25..170881.05 rows=3283830 width=4)
+   ->  Hash Join
          Output: cst_int4.a
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -188,17 +176,23 @@ select * from cst_int4 join cst_int2 using(a);
   8
 (6 rows)
 
-explain select * from cst_int8 join cst_int2 using(a);
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=679.75..270274.25 rows=8808030 width=8)
-   ->  Hash Join  (cost=679.75..152833.85 rows=2936010 width=8)
+explain (verbose, costs off) select * from cst_int8 join cst_int2 using(a);
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_int8.a
+   ->  Hash Join
+         Output: cst_int8.a
          Hash Cond: (cst_int2.a = cst_int8.a)
-         ->  Seq Scan on cst_int2  (cost=0.00..375.00 rows=34100 width=2)
-         ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
-               ->  Seq Scan on cst_int8  (cost=0.00..321.00 rows=28700 width=8)
+         ->  Seq Scan on public.cst_int2
+               Output: cst_int2.a
+         ->  Hash
+               Output: cst_int8.a
+               ->  Seq Scan on public.cst_int8
+                     Output: cst_int8.a
  Optimizer: Postgres-based planner
-(7 rows)
+ Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
+(13 rows)
 
 select * from cst_int8 join cst_int2 using(a);
  a  
@@ -206,19 +200,19 @@ select * from cst_int8 join cst_int2 using(a);
  10
 (1 row)
 
-explain (verbose) select * from cst_int8 join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int8 join cst_int4 using(a);
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=679.75..254464.25 rows=8291430 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=679.75..143911.85 rows=2763810 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: (cst_int4.a = cst_int8.a)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
+         ->  Hash
                Output: cst_int8.a
-               ->  Seq Scan on public.cst_int8  (cost=0.00..321.00 rows=28700 width=8)
+               ->  Seq Scan on public.cst_int8
                      Output: cst_int8.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -235,19 +229,19 @@ select * from cst_int8 join cst_int4 using(a);
  14
 (6 rows)
 
-explain (verbose) select * from cst_float8 join cst_float4 using(a);
+explain (verbose, costs off) select * from cst_float8 join cst_float4 using(a);
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=679.75..254464.25 rows=8291430 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float8.a
-   ->  Hash Join  (cost=679.75..143911.85 rows=2763810 width=8)
+   ->  Hash Join
          Output: cst_float8.a
          Hash Cond: (cst_float4.a = cst_float8.a)
-         ->  Seq Scan on public.cst_float4  (cost=0.00..355.00 rows=32100 width=4)
+         ->  Seq Scan on public.cst_float4
                Output: cst_float4.a
-         ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
+         ->  Hash
                Output: cst_float8.a
-               ->  Seq Scan on public.cst_float8  (cost=0.00..321.00 rows=28700 width=8)
+               ->  Seq Scan on public.cst_float8
                      Output: cst_float8.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -280,29 +274,29 @@ select * from cst_float8 join cst_float4 using(a);
 (21 rows)
 
 -- Confirm that casting logic works recursively
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2
     join cst_int8 using(a)
     join cst_int4 using(a);
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1436.00..26078558.40 rows=848213289 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=1436.00..14769047.88 rows=282737763 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Hash Join  (cost=679.75..152833.85 rows=2936010 width=10)
+         ->  Hash Join
                Output: cst_int2.a, cst_int8.a
                Hash Cond: (cst_int2.a = cst_int8.a)
-               ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
-               ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
+               ->  Hash
                      Output: cst_int8.a
-                     ->  Seq Scan on public.cst_int8  (cost=0.00..321.00 rows=28700 width=8)
+                     ->  Seq Scan on public.cst_int8
                            Output: cst_int8.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
@@ -318,19 +312,19 @@ select * from cst_int2
 
 reset optimizer_join_order;
 -- Confirm that the same logic is correct for other join types
-explain (verbose) select * from cst_int2 full join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 full join cst_int4 using(a);
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..310443.83 rows=9851490 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: (COALESCE((cst_int2.a)::integer, cst_int4.a))
-   ->  Hash Full Join  (cost=756.25..179090.62 rows=3283830 width=4)
+   ->  Hash Full Join
          Output: COALESCE((cst_int2.a)::integer, cst_int4.a)
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -358,19 +352,19 @@ select * from cst_int2 full join cst_int4 using(a);
 (16 rows)
 
 -- BUG: this test is failing for ORCA
-explain (verbose) select * from cst_int2 left join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 left join cst_int4 using(a);
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..310443.83 rows=9851490 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: ((cst_int2.a)::integer)
-   ->  Hash Left Join  (cost=756.25..179090.62 rows=3283830 width=4)
+   ->  Hash Left Join
          Output: cst_int2.a
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -392,19 +386,19 @@ select * from cst_int2 left join cst_int4 using(a);
  10
 (11 rows)
 
-explain (verbose) select * from cst_int2 right join cst_int4 using(a);
+explain (verbose, costs off) select * from cst_int2 right join cst_int4 using(a);
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..302234.25 rows=9851490 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Right Join  (cost=756.25..170881.05 rows=3283830 width=4)
+   ->  Hash Right Join
          Output: cst_int4.a
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -426,27 +420,27 @@ select * from cst_int2 right join cst_int4 using(a);
   8
 (11 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where exists (select *
               from cst_int2
               where cst_int4.a = cst_int2.a);
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=476.08..1735.90 rows=48150 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Join  (cost=476.08..1093.90 rows=16050 width=4)
+   ->  Hash Join
          Output: cst_int4.a
          Inner Unique: true
          Hash Cond: (cst_int4.a = cst_int2.a)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=463.58..463.58 rows=1000 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  HashAggregate  (cost=460.25..463.58 rows=1000 width=2)
+               ->  HashAggregate
                      Output: cst_int2.a
                      Group Key: cst_int2.a
-                     ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+                     ->  Seq Scan on public.cst_int2
                            Output: cst_int2.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -466,23 +460,23 @@ where exists (select *
  10
 (6 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where not exists (select *
                   from cst_int2
                   where cst_int4.a = cst_int2.a);
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=801.25..1904.28 rows=17 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Anti Join  (cost=801.25..1904.06 rows=6 width=4)
+   ->  Hash Anti Join
          Output: cst_int4.a
          Hash Cond: (cst_int4.a = cst_int2.a)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=375.00..375.00 rows=34100 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -501,23 +495,23 @@ where not exists (select *
  15
 (5 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int4
 where cst_int4.a not in (select * from cst_int2);
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=3017.75..413932.03 rows=17 width=4)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Left Anti Semi (Not-In) Join  (cost=3017.75..413931.81 rows=6 width=4)
+   ->  Hash Left Anti Semi (Not-In) Join
          Output: cst_int4.a
          Hash Cond: (cst_int4.a = cst_int2.a)
-         ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+         ->  Seq Scan on public.cst_int4
                Output: cst_int4.a
-         ->  Hash  (cost=1739.00..1739.00 rows=102300 width=2)
+         ->  Hash
                Output: cst_int2.a
-               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1739.00 rows=102300 width=2)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)
                      Output: cst_int2.a
-                     ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+                     ->  Seq Scan on public.cst_int2
                            Output: cst_int2.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -534,20 +528,20 @@ where cst_int4.a not in (select * from cst_int2);
  14
 (5 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2 natural join cst_int4;
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..302234.25 rows=9851490 width=4)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a
-   ->  Hash Join  (cost=756.25..170881.05 rows=3283830 width=4)
+   ->  Hash Join
          Output: cst_int4.a
          Hash Cond: (cst_int2.a = cst_int4.a)
-         ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+         ->  Seq Scan on public.cst_int2
                Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -564,26 +558,26 @@ select * from cst_int2 natural join cst_int4;
  10
 (6 rows)
 
--- Here, insead of an implicit cast, an explicit one is present.
+-- Here, instead of an implicit cast, an explicit one is present.
 --    The postgres-based planner should require a redistribution, because
---    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression
+--    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression.
 --    ORCA, on the other hand, can see that redistribution is unnecessary in this case
-explain (verbose) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..439742.50 rows=9851490 width=6)
+explain (verbose, costs off) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int2.a, cst_int4.a
-   ->  Hash Join  (cost=756.25..308389.30 rows=3283830 width=6)
+   ->  Hash Join
          Output: cst_int2.a, cst_int4.a
          Hash Cond: ((cst_int2.a)::integer = cst_int4.a)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..1057.00 rows=34100 width=2)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: cst_int2.a
                Hash Key: (cst_int2.a)::integer
-               ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -602,23 +596,23 @@ select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 
 -- The same thing, but with multiple casts in a row.
 -- Because the first cast tends to be converted directly to a conversion function,
--- ORCA shouldn't be able detect to the first coercion and should require a redistribution.
-explain (verbose) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
-                                              QUERY PLAN                                              
-------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..542798.75 rows=9273690 width=8)
+-- ORCA shouldn't be able to detect the first coercion and should require a redistribution.
+explain (verbose, costs off) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float4_f.a, cst_float4_s.a
-   ->  Hash Join  (cost=756.25..419149.55 rows=3091230 width=8)
+   ->  Hash Join
          Output: cst_float4_f.a, cst_float4_s.a
          Hash Cond: (((cst_float4_f.a)::integer)::real = cst_float4_s.a)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..997.00 rows=32100 width=4)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: cst_float4_f.a
                Hash Key: ((cst_float4_f.a)::integer)::real
-               ->  Seq Scan on public.cst_float4 cst_float4_f  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_float4 cst_float4_f
                      Output: cst_float4_f.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_float4_s.a
-               ->  Seq Scan on public.cst_float4 cst_float4_s  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_float4 cst_float4_s
                      Output: cst_float4_s.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -652,22 +646,22 @@ select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_
 
 -- Сheck that we don't rule out necessary distributions
 -- Most basic cases
-explain (verbose) select * from cst_float4 join cst_int4 using(a);
-                                             QUERY PLAN                                             
-----------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=756.25..413997.50 rows=9273690 width=4)
+explain (verbose, costs off) select * from cst_float4 join cst_int4 using(a);
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_float4.a
-   ->  Hash Join  (cost=756.25..290348.30 rows=3091230 width=4)
+   ->  Hash Join
          Output: cst_float4.a
          Hash Cond: ((cst_int4.a)::double precision = cst_float4.a)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..997.00 rows=32100 width=4)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: cst_int4.a
                Hash Key: (cst_int4.a)::double precision
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
-         ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+         ->  Hash
                Output: cst_float4.a
-               ->  Seq Scan on public.cst_float4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_float4
                      Output: cst_float4.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -689,21 +683,21 @@ select * from cst_float4 join cst_int4 using(a);
  15
 (11 rows)
 
-explain (verbose) select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
+explain (verbose, costs off) select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=430.00..722633.75 rows=5084640 width=36)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4.a, cst_text.a
-   ->  Hash Join  (cost=430.00..654838.55 rows=1694880 width=36)
+   ->  Hash Join
          Output: cst_int4.a, cst_text.a
          Hash Cond: (cst_int4.a = (cst_text.a)::integer)
-         ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1639.00 rows=96300 width=4)
+         ->  Broadcast Motion 3:3  (slice2; segments: 3)
                Output: cst_int4.a
-               ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+               ->  Seq Scan on public.cst_int4
                      Output: cst_int4.a
-         ->  Hash  (cost=210.00..210.00 rows=17600 width=32)
+         ->  Hash
                Output: cst_text.a
-               ->  Seq Scan on public.cst_text  (cost=0.00..210.00 rows=17600 width=32)
+               ->  Seq Scan on public.cst_text
                      Output: cst_text.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -725,37 +719,37 @@ select * from cst_int4 join cst_text on cst_int4.a = cst_text.a::int4;
   8 | 8
 (11 rows)
 
--- ORCA: in order for there queries to work, equivalent expressions should be matched corretly
-explain (verbose)
+-- ORCA: in order for there queries to work, equivalent expressions should be matched correctly
+explain (verbose, costs off)
 with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))
     join (int8_cte as cte_2 join cst_int4 using(a)) using(a);
-                                                  QUERY PLAN                                                  
---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=163406.08..2231858965.93 rows=73031164183 width=8)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=163406.08..1258110110.16 rows=24343721394 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: (cst_int2.a = cst_int8.a)
-         ->  Hash Join  (cost=756.25..170881.05 rows=3283830 width=6)
+         ->  Hash Join
                Output: cst_int2.a, cst_int4.a
                Hash Cond: (cst_int2.a = cst_int4.a)
-               ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
-               ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+               ->  Hash
                      Output: cst_int4.a
-                     ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+                     ->  Seq Scan on public.cst_int4
                            Output: cst_int4.a
-         ->  Hash  (cost=128744.45..128744.45 rows=2471070 width=16)
+         ->  Hash
                Output: cst_int8.a, cst_int8_1.a
-               ->  Hash Join  (cost=679.75..128744.45 rows=2471070 width=16)
+               ->  Hash Join
                      Output: cst_int8.a, cst_int8_1.a
                      Hash Cond: (cst_int8.a = cst_int8_1.a)
-                     ->  Seq Scan on public.cst_int8  (cost=0.00..321.00 rows=28700 width=8)
+                     ->  Seq Scan on public.cst_int8
                            Output: cst_int8.a
-                     ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
+                     ->  Hash
                            Output: cst_int8_1.a
-                           ->  Seq Scan on public.cst_int8 cst_int8_1  (cost=0.00..321.00 rows=28700 width=8)
+                           ->  Seq Scan on public.cst_int8 cst_int8_1
                                  Output: cst_int8_1.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -769,36 +763,36 @@ select * from (cst_int2 join int8_cte as cte_1 using(a))
  10
 (1 row)
 
-explain (verbose)
+explain (verbose, costs off)
 with int8_cte as (select * from cst_int8)
 select * from (cst_int2 join int8_cte as cte_1 using(a))
     join (cst_int4 join int8_cte as cte_2 using(a)) using(a);
-                                                  QUERY PLAN                                                  
---------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=163406.08..2231858965.93 rows=73031164183 width=8)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int8.a
-   ->  Hash Join  (cost=163406.08..1258110110.16 rows=24343721394 width=8)
+   ->  Hash Join
          Output: cst_int8.a
          Hash Cond: (cst_int2.a = cst_int8.a)
-         ->  Hash Join  (cost=756.25..170881.05 rows=3283830 width=6)
+         ->  Hash Join
                Output: cst_int2.a, cst_int4.a
                Hash Cond: (cst_int2.a = cst_int4.a)
-               ->  Seq Scan on public.cst_int2  (cost=0.00..375.00 rows=34100 width=2)
+               ->  Seq Scan on public.cst_int2
                      Output: cst_int2.a
-               ->  Hash  (cost=355.00..355.00 rows=32100 width=4)
+               ->  Hash
                      Output: cst_int4.a
-                     ->  Seq Scan on public.cst_int4  (cost=0.00..355.00 rows=32100 width=4)
+                     ->  Seq Scan on public.cst_int4
                            Output: cst_int4.a
-         ->  Hash  (cost=128744.45..128744.45 rows=2471070 width=16)
+         ->  Hash
                Output: cst_int8.a, cst_int8_1.a
-               ->  Hash Join  (cost=679.75..128744.45 rows=2471070 width=16)
+               ->  Hash Join
                      Output: cst_int8.a, cst_int8_1.a
                      Hash Cond: (cst_int8.a = cst_int8_1.a)
-                     ->  Seq Scan on public.cst_int8  (cost=0.00..321.00 rows=28700 width=8)
+                     ->  Seq Scan on public.cst_int8
                            Output: cst_int8.a
-                     ->  Hash  (cost=321.00..321.00 rows=28700 width=8)
+                     ->  Hash
                            Output: cst_int8_1.a
-                           ->  Seq Scan on public.cst_int8 cst_int8_1  (cost=0.00..321.00 rows=28700 width=8)
+                           ->  Seq Scan on public.cst_int8 cst_int8_1
                                  Output: cst_int8_1.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -813,20 +807,20 @@ select * from (cst_int2 join int8_cte as cte_1 using(a))
 (1 row)
 
 -- Test distribution by multiple keys
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=683.17..197987.19 rows=7081 width=18)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.a, t1.b, t2.a, t2.b
-   ->  Hash Join  (cost=683.17..197892.77 rows=2360 width=18)
+   ->  Hash Join
          Output: t1.a, t1.b, t2.a, t2.b
          Hash Cond: ((t1.a = t2.a) AND (t1.b = t2.b))
-         ->  Seq Scan on public.cst_int2_int4 t1  (cost=0.00..337.00 rows=30300 width=6)
+         ->  Seq Scan on public.cst_int2_int4 t1
                Output: t1.a, t1.b
-         ->  Hash  (cost=293.67..293.67 rows=25967 width=12)
+         ->  Hash
                Output: t2.a, t2.b
-               ->  Seq Scan on public.cst_int4_int8 t2  (cost=0.00..293.67 rows=25967 width=12)
+               ->  Seq Scan on public.cst_int4_int8 t2
                      Output: t2.a, t2.b
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -847,23 +841,23 @@ select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t
   8 |  8 |  8 |  8
 (10 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.b and t1.b = t2.a);
-                                             QUERY PLAN                                             
-----------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=683.17..198593.19 rows=7081 width=18)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.a, t1.b, t2.a, t2.b
-   ->  Hash Join  (cost=683.17..198498.77 rows=2360 width=18)
+   ->  Hash Join
          Output: t1.a, t1.b, t2.a, t2.b
          Hash Cond: ((t1.a = t2.b) AND (t1.b = t2.a))
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..943.00 rows=30300 width=6)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: t1.a, t1.b
                Hash Key: t1.b, t1.a
-               ->  Seq Scan on public.cst_int2_int4 t1  (cost=0.00..337.00 rows=30300 width=6)
+               ->  Seq Scan on public.cst_int2_int4 t1
                      Output: t1.a, t1.b
-         ->  Hash  (cost=293.67..293.67 rows=25967 width=12)
+         ->  Hash
                Output: t2.a, t2.b
-               ->  Seq Scan on public.cst_int4_int8 t2  (cost=0.00..293.67 rows=25967 width=12)
+               ->  Seq Scan on public.cst_int4_int8 t2
                      Output: t2.a, t2.b
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -884,23 +878,23 @@ select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.b and t
  10 | 10 | 10 | 10
 (10 rows)
 
-explain (verbose)
+explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int2 as t2 on (t1.a = t2.a);
-                                             QUERY PLAN                                             
-----------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=801.25..285958.25 rows=9299070 width=8)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: t1.a, t1.b, t2.a
-   ->  Hash Join  (cost=801.25..161970.65 rows=3099690 width=8)
+   ->  Hash Join
          Output: t1.a, t1.b, t2.a
          Hash Cond: (t1.a = t2.a)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..943.00 rows=30300 width=6)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
                Output: t1.a, t1.b
                Hash Key: t1.a
-               ->  Seq Scan on public.cst_int2_int4 t1  (cost=0.00..337.00 rows=30300 width=6)
+               ->  Seq Scan on public.cst_int2_int4 t1
                      Output: t1.a, t1.b
-         ->  Hash  (cost=375.00..375.00 rows=34100 width=2)
+         ->  Hash
                Output: t2.a
-               ->  Seq Scan on public.cst_int2 t2  (cost=0.00..375.00 rows=34100 width=2)
+               ->  Seq Scan on public.cst_int2 t2
                      Output: t2.a
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
@@ -922,30 +916,30 @@ select * from cst_int2_int4 as t1 join cst_int2 as t2 on (t1.a = t2.a);
 (10 rows)
 
 set optimizer_join_order = query;
-explain (verbose)
+explain (verbose, costs off)
 with cst_int2_int4_copy as (select * from cst_int2_int4)
 select * from cst_int2_int4
     natural join cst_int4_int8
     natural join cst_int2_int4_copy;
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1474.67..216586.60 rows=644 width=12)
+ Gather Motion 3:1  (slice1; segments: 3)
    Output: cst_int4_int8.a, cst_int4_int8.b
-   ->  Hash Join  (cost=1474.67..216578.02 rows=215 width=12)
+   ->  Hash Join
          Output: cst_int4_int8.a, cst_int4_int8.b
          Hash Cond: ((cst_int2_int4.a = cst_int2_int4_1.a) AND (cst_int2_int4.b = cst_int2_int4_1.b))
-         ->  Hash Join  (cost=683.17..197892.77 rows=2360 width=18)
+         ->  Hash Join
                Output: cst_int2_int4.a, cst_int2_int4.b, cst_int4_int8.a, cst_int4_int8.b
                Hash Cond: ((cst_int2_int4.a = cst_int4_int8.a) AND (cst_int2_int4.b = cst_int4_int8.b))
-               ->  Seq Scan on public.cst_int2_int4  (cost=0.00..337.00 rows=30300 width=6)
+               ->  Seq Scan on public.cst_int2_int4
                      Output: cst_int2_int4.a, cst_int2_int4.b
-               ->  Hash  (cost=293.67..293.67 rows=25967 width=12)
+               ->  Hash
                      Output: cst_int4_int8.a, cst_int4_int8.b
-                     ->  Seq Scan on public.cst_int4_int8  (cost=0.00..293.67 rows=25967 width=12)
+                     ->  Seq Scan on public.cst_int4_int8
                            Output: cst_int4_int8.a, cst_int4_int8.b
-         ->  Hash  (cost=337.00..337.00 rows=30300 width=6)
+         ->  Hash
                Output: cst_int2_int4_1.a, cst_int2_int4_1.b
-               ->  Seq Scan on public.cst_int2_int4 cst_int2_int4_1  (cost=0.00..337.00 rows=30300 width=6)
+               ->  Seq Scan on public.cst_int2_int4 cst_int2_int4_1
                      Output: cst_int2_int4_1.a, cst_int2_int4_1.b
  Optimizer: Postgres-based planner
  Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off', optimizer_join_order = 'query'
