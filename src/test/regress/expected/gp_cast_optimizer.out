@@ -354,7 +354,7 @@ select * from cst_int2 full join cst_int4 using(a);
 -- BUG: this test is failing for ORCA
 explain (verbose, costs off) select * from cst_int2 left join cst_int4 using(a);
 INFO:  GPORCA failed to produce a plan, falling back to Postgres-based planner
-DETAIL:  CTranslatorQueryToDXL.cpp:4201: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
+DETAIL:  CTranslatorQueryToDXL.cpp:4199: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
@@ -374,7 +374,7 @@ DETAIL:  CTranslatorQueryToDXL.cpp:4201: Failed assertion: ((((const Node*)(join
 
 select * from cst_int2 left join cst_int4 using(a);
 INFO:  GPORCA failed to produce a plan, falling back to Postgres-based planner
-DETAIL:  CTranslatorQueryToDXL.cpp:4201: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
+DETAIL:  CTranslatorQueryToDXL.cpp:4199: Failed assertion: ((((const Node*)(join_alias_node))->type) == T_Var) || ((((const Node*)(join_alias_node))->type) == T_CoalesceExpr) || ((((const Node*)(join_alias_node))->type) == T_RelabelType)
  a  
 ----
   0
