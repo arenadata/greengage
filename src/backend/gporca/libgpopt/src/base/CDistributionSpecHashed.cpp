@@ -294,7 +294,8 @@ CDistributionSpecHashed::FMatchSubset(
 				GPOS_ASSERT(false == fFound);
 				CExpressionArray *equiv_distribution_exprs =
 					(*equiv_hash_exprs)[ulInner];
-				if (CUtils::ContainsDistribution(equiv_distribution_exprs, pexprOwn))
+				if (CUtils::ContainsDistribution(equiv_distribution_exprs,
+												 pexprOwn))
 				{
 					fFound = true;
 					break;
