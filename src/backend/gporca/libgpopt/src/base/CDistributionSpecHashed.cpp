@@ -267,7 +267,7 @@ CDistributionSpecHashed::FMatchSubset(
 				opfamily_other = (*pdsHashed->m_opfamilies)[ulInner];
 			}
 
-			if (CUtils::Equals(pexprOwn, pexprOther, true) &&
+			if (CUtils::EqualDistributions(pexprOwn, pexprOther) &&
 				CUtils::Equals(opfamily_own, opfamily_other))
 			{
 				fFound = true;
@@ -294,7 +294,7 @@ CDistributionSpecHashed::FMatchSubset(
 				GPOS_ASSERT(false == fFound);
 				CExpressionArray *equiv_distribution_exprs =
 					(*equiv_hash_exprs)[ulInner];
-				if (CUtils::Contains(equiv_distribution_exprs, pexprOwn, true))
+				if (CUtils::ContainsDistribution(equiv_distribution_exprs, pexprOwn))
 				{
 					fFound = true;
 					break;
