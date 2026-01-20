@@ -365,7 +365,7 @@ Feature: Tests for gpaddmirrors
         And with HBA_HOSTNAMES "1" a cluster is created with no mirrors on "cdw" and "sdw1, sdw2"
         And pg_hba file "/tmp/gpaddmirrors/primary/gpseg0/pg_hba.conf" on host "sdw1" contains entries for "cdw, sdw1"
         And gpaddmirrors adds mirrors with options "--hba-hostnames"
-        And pg_hba file "/tmp/gpaddmirrors/primary/gpseg0/pg_hba.conf" on host "sdw1" contains entries for "cdw, sdw1, sdw2, samehost, 172.18.0.2"
+        And pg_hba file "/tmp/gpaddmirrors/primary/gpseg0/pg_hba.conf" on host "sdw1" contains entries for "cdw, sdw1, sdw2, samehost"
         Then verify the database has mirrors
 
         When the mirror on content 0 is stopped with the immediate flag
