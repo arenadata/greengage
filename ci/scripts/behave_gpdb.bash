@@ -13,7 +13,7 @@ function gen_env(){
 
 		source /usr/local/greengage-db-devel/greengage_path.sh
 
-		test -f gpdb_src/gpAux/gpdemo/gpdemo-env.sh && source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
+		source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
 
 		cd "\${1}/gpdb_src/gpMgmt/"
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
@@ -42,11 +42,10 @@ function _main() {
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o /tmp/allure-results||g")"
 		export BEHAVE_FLAGS="$BEHAVE_FLAGS --verbose"
 
-		# Run inside a subshell so it does not pollute the environment after
-		# sourcing greengage_path
-		time (make_cluster)
-
 		for CLUSTER in $CLUSTERS; do
+			# Run inside a subshell so it does not pollute the environment after
+			# sourcing greengage_path
+			time (make_cluster)
 			time gen_env
 			time run_test
 		done
