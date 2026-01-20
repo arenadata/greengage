@@ -48,7 +48,7 @@ function _main() {
 			IP="$(host "$HOST" | grep 'has address' | head -n 1 | cut -d ' ' -f 4)"
 			for OTHER_HOST in $HOSTS; do
 				if [[ "$HOST" != "$OTHER_HOST" ]]; then
-					ssh "$OTHER_HOST" "sudo echo \"$IP $HOST\" >> /etc/hosts"
+					ssh -o "BatchMode yes" -o "StrictHostKeyChecking no" "$OTHER_HOST" "sudo echo \"$IP $HOST\" >> /etc/hosts"
 				fi
 			done
 		done
