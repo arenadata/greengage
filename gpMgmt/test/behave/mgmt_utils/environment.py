@@ -21,14 +21,8 @@ def before_all(context):
 def before_feature(context, feature):
     if not hasattr(context, "cluster_created"):
         context.cluster_created = True
-        if "concourse_cluster_4" in set(feature.tags):
-            segments = 4
-        elif "concourse_cluster_2" in set(feature.tags):
-            segments = 2
-        else:
-            segments = 3
         from test.behave_utils.ci.fixtures import init_cluster
-        use_fixture(init_cluster, context, "concourse_cluster" in set(context.config.tags), segments=segments)
+        use_fixture(init_cluster, context)
 
     # we should be able to run gpexpand without having a cluster initialized
     tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate', 'gpmovemirrors',

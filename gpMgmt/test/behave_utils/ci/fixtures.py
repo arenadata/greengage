@@ -2,8 +2,14 @@ from behave import fixture
 
 
 @fixture
-def init_cluster(context, concourse_cluster, segments=3):
-    if concourse_cluster:
+def init_cluster(context):
+    if "concourse_cluster" in set(context.config.tags):
+        if "concourse_cluster_4" in set(context.feature.tags):
+            segments = 4
+        elif "concourse_cluster_2" in set(context.feature.tags):
+            segments = 2
+        else:
+            segments = 3
         segments_str = ','.join('sdw{}'.format(i) for i in range(1, segments+1))
         context.execute_steps(u"""
             Given the database is not running
