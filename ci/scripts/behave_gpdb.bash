@@ -43,17 +43,6 @@ function _main() {
 		export BEHAVE_FLAGS="$BEHAVE_FLAGS --verbose"
 		export LANG=en_US.UTF-8
 
-		# Run inside a subshell so it does not pollute the environment after
-		# sourcing greengage_path
-		time (make_cluster)
-
-		source /usr/local/greengage-db-devel/greengage_path.sh
-		HOSTS="cdw sdw1 sdw2 sdw3 sdw4 sdw5 sdw6"
-		for HOST in $HOSTS; do
-			IP="$(host "$HOST" | grep 'has address' | head -n 1 | cut -d ' ' -f 4)"
-			gpssh -u gpadmin -h cdw -h sdw1 -h sdw2 -h sdw3 -h sdw4 -h sdw5 -h sdw6 -v -e "sudo echo \"$IP $HOST\" >> /etc/hosts"
-		done
-
 		for CLUSTER in $CLUSTERS; do
 			# Run inside a subshell so it does not pollute the environment after
 			# sourcing greengage_path
