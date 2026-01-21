@@ -12,4 +12,8 @@ def init_cluster(context, concourse_cluster, segments=3):
             And a cluster is created with mirrors on "cdw" and "{}"
         """.format(segments_str))
     else:
-        context.execute_steps(u"Given a standard local demo cluster is created")
+        context.execute_steps(u"""
+            Given the database is not running
+            And the user runs command "rm -rf ~/gpAdminLogs/gpinitsystem*"
+            And a standard local demo cluster is created
+        """)

@@ -150,7 +150,9 @@ def impl(context, checksum_toggle):
 def impl(context, num_primaries):
     os.environ['PGPORT'] = '15432'
     demoDir = os.path.abspath("%s/../gpAux/gpdemo" % os.getcwd())
-    os.environ['MASTER_DATA_DIRECTORY'] = "%s/datadirs/qddir/demoDataDir-1" % demoDir
+    global master_data_dir
+    master_data_dir = "%s/datadirs/qddir/demoDataDir-1" % demoDir
+    os.environ['MASTER_DATA_DIRECTORY'] = master_data_dir
 
     create_local_demo_cluster(context, with_mirrors='false', with_standby='false', num_primaries=num_primaries)
 
