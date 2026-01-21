@@ -47,7 +47,7 @@ function _main() {
 		HOSTS="cdw sdw1 sdw2 sdw3 sdw4 sdw5 sdw6"
 		for HOST in $HOSTS; do
 			IP="$(host "$HOST" | grep 'has address' | head -n 1 | cut -d ' ' -f 4)"
-			gpssh -h cdw -h sdw1 -h sdw2 -h sdw3 -h sdw4 -h sdw5 -h sdw6 "sudo echo \"$IP $HOST\" >> /etc/hosts"
+			gpssh -h cdw -h sdw1 -h sdw2 -h sdw3 -h sdw4 -h sdw5 -h sdw6 -v -e "sudo echo \"$IP $HOST\" >> /etc/hosts"
 		done
 
 		for CLUSTER in $CLUSTERS; do
