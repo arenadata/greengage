@@ -1496,6 +1496,42 @@ CUtils::Equals(const CExpressionArray *pdrgpexprLeft,
 	return fEqual;
 }
 
+// helper for CUtils::Equals, practically useless on it own
+static CExpression *
+SkipCastWithinOpfamily(const CExpression *pexprFirst,
+					   const CExpression *pexprSecond)
+{
+	if (pexprFirst->Pop()->Eopid() != COperator::EopScalarCast ||
+		pexprSecond->Pop()->Eopid() != COperator::EopScalarIdent)
+	{
+		return nullptr;
+	}
+
+	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
+	CScalarCast *popCast = CScalarCast::PopConvert(pexprFirst->Pop());
+	CExpression *pexprChild = (*pexprFirst)[0];
+	if (COperator::EopScalarIdent != pexprChild->Pop()->Eopid())
+	{
+		return nullptr;
+	}
+
+	CScalarIdent *popChild = CScalarIdent::PopConvert(pexprChild->Pop());
+
+	IMDId *mdidSource = popChild->MdidType();
+	IMDId *mdidDest = popCast->MdidType();
+	const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
+	const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
+
+	IMDId *mdidSourceOpfamily = mdtSourceType->GetDistrOpfamilyMdid();
+	IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
+	if (!CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
+	{
+		return nullptr;
+	}
+
+	return pexprChild;
+}
+
 // common handler for direct expression comparation CUtils::Equals
 // and distribution matching CUtils::EqualDistributions
 BOOL
@@ -1531,60 +1567,18 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) &&
 		fMatchDistribution)
 	{
-		if (pexprLeft->Pop()->Eopid() == COperator::EopScalarCast &&
-			pexprRight->Pop()->Eopid() == COperator::EopScalarIdent)
+		CExpression *pexprNewLeft =
+			SkipCastWithinOpfamily(pexprLeft, pexprRight);
+		CExpression *pexprNewRight =
+			SkipCastWithinOpfamily(pexprRight, pexprLeft);
+		GPOS_ASSERT(nullptr == pexprNewLeft || nullptr == pexprNewRight);
+		if (nullptr != pexprNewLeft)
 		{
-			CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
-			CScalarCast *popCast = CScalarCast::PopConvert(pexprLeft->Pop());
-
-			CExpression *pexprChild = (*pexprLeft)[0];
-			if (COperator::EopScalarIdent == pexprChild->Pop()->Eopid())
-			{
-				CScalarIdent *popChild =
-					CScalarIdent::PopConvert(pexprChild->Pop());
-				IMDId *mdidSource = popChild->MdidType();
-				IMDId *mdidDest = popCast->MdidType();
-
-				const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
-				const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
-
-				IMDId *mdidSourceOpfamily =
-					mdtSourceType->GetDistrOpfamilyMdid();
-				IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
-
-				if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
-				{
-					pexprLeft = pexprChild;
-				}
-			}
+			pexprLeft = pexprNewLeft;
 		}
-
-		if (pexprRight->Pop()->Eopid() == COperator::EopScalarCast &&
-			pexprLeft->Pop()->Eopid() == COperator::EopScalarIdent)
+		if (nullptr != pexprNewRight)
 		{
-			CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
-			CScalarCast *popCast = CScalarCast::PopConvert(pexprRight->Pop());
-
-			CExpression *pexprChild = (*pexprRight)[0];
-			if (COperator::EopScalarIdent == pexprChild->Pop()->Eopid())
-			{
-				CScalarIdent *popChild =
-					CScalarIdent::PopConvert(pexprChild->Pop());
-				IMDId *mdidSource = popChild->MdidType();
-				IMDId *mdidDest = popCast->MdidType();
-
-				const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
-				const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
-
-				IMDId *mdidSourceOpfamily =
-					mdtSourceType->GetDistrOpfamilyMdid();
-				IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
-
-				if (CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
-				{
-					pexprRight = pexprChild;
-				}
-			}
+			pexprRight = pexprNewRight;
 		}
 	}
 
