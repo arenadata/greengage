@@ -43,14 +43,11 @@ function _main() {
 		export BEHAVE_FLAGS="$BEHAVE_FLAGS --verbose"
 		export LANG=en_US.UTF-8
 
+		source /usr/local/greengage-db-devel/greengage_path.sh
 		HOSTS="cdw sdw1 sdw2 sdw3 sdw4 sdw5 sdw6"
 		for HOST in $HOSTS; do
 			IP="$(host "$HOST" | grep 'has address' | head -n 1 | cut -d ' ' -f 4)"
-			for OTHER_HOST in $HOSTS; do
-				if [[ "$HOST" != "$OTHER_HOST" ]]; then
-					ssh -o "BatchMode yes" -o "StrictHostKeyChecking no" "$OTHER_HOST" "sudo echo \"$IP $HOST\" >> /etc/hosts"
-				fi
-			done
+			gpssh -h cdw -h sdw1 -h sdw2 -h sdw3 -h sdw4 -h sdw5 -h sdw6 "sudo echo \"$IP $HOST\" >> /etc/hosts"
 		done
 
 		for CLUSTER in $CLUSTERS; do
