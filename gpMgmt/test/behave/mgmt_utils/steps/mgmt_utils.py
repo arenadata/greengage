@@ -46,9 +46,7 @@ from gppylib import pgconf
 from gppylib.parseutils import canonicalize_address
 
 default_locale = None
-master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
-if master_data_dir is None:
-    raise Exception('Please set MASTER_DATA_DIRECTORY in environment')
+master_data_dir = None
 
 def show_all_installed(gphome):
     x = platform.linux_distribution()
