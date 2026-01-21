@@ -1552,18 +1552,22 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 		return true;
 	}
 
-	// Allow a column reference (int2_column) and the same column reference casted to
-	// a different type within the same distribution opfamily (int2_column::int4) be considered equal
-	// In this case, presence if the cast doesn't change how
-	// the value is distributed, meaning that redistribution motion is not required
+	// Allow a column reference (int2_column) and the same column reference
+	// casted to a different type within the same distribution opfamily
+	// (int2_column::int4) be considered equal
+	// In this case, presence if the cast doesn't change how the value is
+	// distributed, meaning that redistribution motion is not required
 	//
-	// Note that this check is not quite permissive, because distribution might not be changed even if there are multiple casts in a row,
+	// Note that this check is not quite permissive, because distribution
+	// might not be changed even if there are multiple casts in a row,
 	// e.g. int2_column::int4::int8
-	// But, as the time of writing this, the first cast will be turned into hard-to-detect coercion function anyway, so there is no need
+	// But, as the time of writing this, the first cast will be turned into
+	// hard-to-detect coercion function anyway, so there is no need
 	// to perform this check recursively
 	//
-	// Also, when using legacy hashfamilies, it is not guaranteed that different types within
-	// the same opfamily have the same hashfunction, so the logic above is not applicable
+	// Also, when using legacy hashfamilies, it is not guaranteed that
+	// different types within the same opfamily have the same hashfunction,
+	// so the logic above is not applicable
 	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) &&
 		fMatchDistribution)
 	{
