@@ -1496,7 +1496,7 @@ CUtils::Equals(const CExpressionArray *pdrgpexprLeft,
 	return fEqual;
 }
 
-// helper for CUtils::Equals, practically useless on it own
+// helper for CUtils::Equals, practically useless on its own
 static CExpression *
 SkipCastWithinOpfamily(const CExpression *pexprFirst,
 					   const CExpression *pexprSecond)

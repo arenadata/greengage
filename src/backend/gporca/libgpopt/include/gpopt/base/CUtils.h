@@ -445,7 +445,7 @@ public:
 											CExpressionArray *pdrgpexpr);
 
 	// common handler for direct expression comparison CUtils::Equals
-	// and distribution mathing CUtils::EqualDistributions
+	// and distribution matching CUtils::EqualDistributions
 	static BOOL Equals(const CExpression *pexprLeft,
 					   const CExpression *pexprRight, bool fMatchDistribution);
 
