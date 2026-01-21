@@ -3,6 +3,13 @@
 -- but it is nice to have a centralized place to observe and compare the behavior of the planners.
 -- Tables here are prefixed with cst (which stands for 'cast') to avoid collisions
 
+-- One of the tests below fails with an assertion, that prints its location in the source code.
+-- Make sure that we don't need to update this file when its line changes.
+-- start_matchsubs
+-- m/DETAIL:  CTranslatorQueryToDXL.cpp:\d+: Failed assertion/
+-- s/DETAIL:  CTranslatorQueryToDXL.cpp:\d+: Failed assertion/DETAIL:  CTranslatorQueryToDXL.cpp:###: Failed assertion/
+-- end_matchsubs
+
 set optimizer_enable_mergejoin = false;
 set optimizer_enable_nljoin = false;
 set enable_mergejoin = false;
@@ -80,6 +87,7 @@ explain (verbose, costs off) select * from cst_int2 full join cst_int4 using(a);
 select * from cst_int2 full join cst_int4 using(a);
 
 -- BUG: this test is failing for ORCA
+-- It's the test that requires start_matchsubs
 explain (verbose, costs off) select * from cst_int2 left join cst_int4 using(a);
 select * from cst_int2 left join cst_int4 using(a);
 
