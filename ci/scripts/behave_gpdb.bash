@@ -13,8 +13,6 @@ function gen_env(){
 
 		source /usr/local/greengage-db-devel/greengage_path.sh
 
-		source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
-
 		cd "\${1}/gpdb_src/gpMgmt/"
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
 		BEHAVE_FLAGS="${BEHAVE_FLAGS} --tags=${CLUSTER}"
@@ -44,9 +42,6 @@ function _main() {
 		export LANG=en_US.UTF-8
 
 		for CLUSTER in $CLUSTERS; do
-			# Run inside a subshell so it does not pollute the environment after
-			# sourcing greengage_path
-			test -f gpdb_src/gpAux/gpdemo/gpdemo-env.sh || time (make_cluster)
 			time gen_env
 			time run_test
 		done

@@ -19,18 +19,16 @@ def before_all(context):
         raise Exception("Requires at least behave version 1.2.6 (found %s)" % behave.__version__)
 
 def before_feature(context, feature):
-    if "concourse_cluster" in set(context.config.tags) and not hasattr(context, "concourse_cluster_created"):
-        from test.behave_utils.ci.fixtures import init_cluster
-        context.concourse_cluster_created = True
-
-        if "concourse_cluster_4" in set(context.feature.tags):
+    if not hasattr(context, "cluster_created"):
+        context.cluster_created = True
+        if "concourse_cluster_4" in set(feature.tags):
             segments = 4
-        elif "concourse_cluster_2" in set(context.feature.tags):
+        elif "concourse_cluster_2" in set(feature.tags):
             segments = 2
         else:
             segments = 3
-
-        use_fixture(init_cluster, context, segments=segments)
+        from test.behave_utils.ci.fixtures import init_cluster
+        use_fixture(init_cluster, context, "concourse_cluster" in set(context.config.tags), segments=segments)
 
     # we should be able to run gpexpand without having a cluster initialized
     tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate', 'gpmovemirrors',
