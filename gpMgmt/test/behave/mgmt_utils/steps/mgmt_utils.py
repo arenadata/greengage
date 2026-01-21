@@ -78,19 +78,24 @@ def create_local_demo_cluster(context, extra_config='', with_mirrors='true', wit
         num_primaries = os.getenv('NUM_PRIMARY_MIRROR_PAIRS', 3)
 
     os.environ['PGPORT'] = '15432'
+    demoDir = os.path.abspath("%s/../gpAux/gpdemo" % os.getcwd())
+    global master_data_dir
+    master_data_dir = "%s/datadirs/qddir/demoDataDir-1" % demoDir
+    os.environ['MASTER_DATA_DIRECTORY'] = master_data_dir
+
     cmd = """
         cd ../gpAux/gpdemo &&
         export DEMO_PORT_BASE={port_base} &&
         export NUM_PRIMARY_MIRROR_PAIRS={num_primary_mirror_pairs} &&
         export PGPORT={pgport} &&
-        export MASTER_DATA_DIRECTORY={master_data_directory} &&
+        export MASTER_DATA_DIRECTORY={master_data_dir} &&
         export WITH_STANDBY={with_standby} &&
         export WITH_MIRRORS={with_mirrors} &&
         ./demo_cluster.sh -d && ./demo_cluster.sh -c &&
         {extra_config} ./demo_cluster.sh
     """.format(port_base=os.getenv('PORT_BASE', 15432),
                pgport=os.getenv('PGPORT', 15432),
-               master_data_directory=os.getenv('MASTER_DATA_DIRECTORY', master_data_dir),
+               master_data_dir=os.getenv('MASTER_DATA_DIRECTORY', master_data_dir),
                num_primary_mirror_pairs=num_primaries,
                with_mirrors=with_mirrors,
                with_standby=with_standby,
