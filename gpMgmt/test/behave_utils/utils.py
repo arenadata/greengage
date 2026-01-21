@@ -181,8 +181,8 @@ def check_return_code(context, ret_code):
 
 
 def check_database_is_running(context):
-    if not 'PGPORT' in os.environ:
-        raise Exception('PGPORT should be set')
+    if not 'PGPORT' in os.environ or not 'MASTER_DATA_DIRECTORY' in os.environ:
+        return False
 
     pgport = int(os.environ['PGPORT'])
 
