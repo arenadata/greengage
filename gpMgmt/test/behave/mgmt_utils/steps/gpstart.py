@@ -164,7 +164,7 @@ def impl(context, seg_type, content, expected_status):
         orig = get_guc_value("gp_fts_mark_mirror_down_grace_period")
         set_guc_value(context, "gp_fts_mark_mirror_down_grace_period", timeout)
         utils.trigger_fts_probe()
-        for i in range(1, 10):
+        for i in range(1,4):
             time.sleep(timeout + 1) # Sleep an extra second since the timing isn't necessarily exact
             utils.trigger_fts_probe()
             if has_expected_status(content, preferred_role, expected_status):
