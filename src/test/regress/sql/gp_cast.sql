@@ -39,8 +39,8 @@ create table cst_int4_int8 as (select gen::int4 as a, gen::int8 as b from genera
 
 -- Perform an inner join on all hash opfamilies containing more than one type.
 -- We shouldn't see any redistributions, because:
---    The postgres-based planner has operators that work on different types
---    ORCA doesn't support such operations, but it knows when a cast doesn't change a distribution
+--    The postgres-based planner has operators that work on different types.
+--    ORCA doesn't support such operations, but it knows when a cast doesn't change a distribution.
 
 set optimizer_join_order = query;
 
