@@ -1507,8 +1507,6 @@ SkipCastWithinOpfamily(const CExpression *pexprFirst,
 		return nullptr;
 	}
 
-	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
-	CScalarCast *popCast = CScalarCast::PopConvert(pexprFirst->Pop());
 	CExpression *pexprChild = (*pexprFirst)[0];
 	if (COperator::EopScalarIdent != pexprChild->Pop()->Eopid())
 	{
@@ -1516,9 +1514,11 @@ SkipCastWithinOpfamily(const CExpression *pexprFirst,
 	}
 
 	CScalarIdent *popChild = CScalarIdent::PopConvert(pexprChild->Pop());
-
+	CScalarCast *popCast = CScalarCast::PopConvert(pexprFirst->Pop());
 	IMDId *mdidSource = popChild->MdidType();
 	IMDId *mdidDest = popCast->MdidType();
+
+	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
 	const IMDType *mdtSourceType = mda->RetrieveType(mdidSource);
 	const IMDType *mdtDestType = mda->RetrieveType(mdidDest);
 
