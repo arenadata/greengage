@@ -249,7 +249,6 @@ def impl(context, utility, recovery_type, content_ids):
 def impl(context, num):
     gprecoverseg_output = context.stdout_message
 
-    master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
     era_cmd = "grep 'era =' {}/log/gp_era | sed 's/^.* // | tr -d '\n'".format(master_data_dir)
     run_command(context, era_cmd)
     era = context.stdout_message
