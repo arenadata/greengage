@@ -96,10 +96,11 @@ def after_feature(context, feature):
         context.conn.close()
     if 'minirepro' in feature.tags:
         context.conn.close()
-    context.execute_steps(u'''
-        Then the user runs "gpstop -a"
-        And gpstop should return a return code of 0
-        ''')
+    if 'gpconfig' in feature.tags:
+        context.execute_steps(u'''
+            Then the user runs "gpstop -ar"
+            And gpstop should return a return code of 0
+            ''')
 
 def before_scenario(context, scenario):
     if "skip" in scenario.effective_tags:
