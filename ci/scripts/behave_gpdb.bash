@@ -43,7 +43,7 @@ function _main() {
 
 		for CLUSTER in $CLUSTERS; do
 			time gen_env
-			time (run_test)
+			time run_test
 		done
 }
 
