@@ -186,11 +186,6 @@ CREATE_QES_PRIMARY () {
         # add localhost
         $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host     all          all         localhost      trust >> ${GP_DIR}/$PG_HBA"
         $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host	all	all	${MASTER_HOSTNAME}	trust >> ${GP_DIR}/$PG_HBA"
-        MASTER_IP="$($TRUSTED_SHELL ${GP_HOSTADDRESS} "host \"$MASTER_HOSTNAME\" | grep 'has address' | head -n 1 | cut -d ' ' -f 4")"
-        ANOTHER_MASTER_HOSTNAME="$($TRUSTED_SHELL ${GP_HOSTADDRESS} "host \"$MASTER_IP\" | grep 'domain name pointer' | head -n 1 | cut -d ' ' -f 5 | sed 's|\.$||'")"
-        if [[ -n "$ANOTHER_MASTER_HOSTNAME" && "$ANOTHER_MASTER_HOSTNAME" != "$MASTER_HOSTNAME" ]]; then
-          $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host	all	all	${ANOTHER_MASTER_HOSTNAME}	trust >> ${GP_DIR}/$PG_HBA"
-        fi
         if [ x"" != x"$MIRROR_HOSTADDRESS" ]; then
           $TRUSTED_SHELL ${GP_HOSTADDRESS} "$ECHO host     all          $USER_NAME         $MIRROR_HOSTADDRESS      trust >> ${GP_DIR}/$PG_HBA"
         fi
