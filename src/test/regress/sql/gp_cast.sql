@@ -1,7 +1,7 @@
--- This file contains tests related to the casting behavior, primarily in joins
+-- This file contains tests related to the casting behavior, primarily in joins.
 -- Some of the tests performed here may already be present inside other files,
 -- but it is nice to have a centralized place to observe and compare the behavior of the planners.
--- Tables here are prefixed with cst (which stands for 'cast') to avoid collisions
+-- Tables here are prefixed with cst (which stands for 'cast') to avoid collisions.
 
 -- One of the tests below fails with an assertion, that prints its location in the source code.
 -- Make sure that we don't need to update this file when its line changes.
@@ -86,8 +86,8 @@ reset optimizer_join_order;
 explain (verbose, costs off) select * from cst_int2 full join cst_int4 using(a);
 select * from cst_int2 full join cst_int4 using(a);
 
--- BUG: this test is failing for ORCA
--- It's the test that requires start_matchsubs
+-- BUG: this test is failing for ORCA.
+-- It's the test that requires start_matchsubs.
 explain (verbose, costs off) select * from cst_int2 left join cst_int4 using(a);
 select * from cst_int2 left join cst_int4 using(a);
 
@@ -131,7 +131,7 @@ select * from cst_int2 natural join cst_int4;
 -- Here, instead of an implicit cast, an explicit one is present.
 --    The postgres-based planner should require a redistribution, because
 --    distribution of the cst_int2 table is not directly equal to the left-hand side of the expression.
---    ORCA, on the other hand, can see that redistribution is unnecessary in this case
+--    ORCA, on the other hand, can see that redistribution is unnecessary in this case.
 explain (verbose, costs off) select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 
@@ -143,8 +143,8 @@ explain (verbose, costs off) select * from cst_float4 as cst_float4_f join cst_f
 select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
 
 
--- Сheck that we don't rule out necessary distributions
--- Most basic cases
+-- Сheck that we don't rule out necessary distributions.
+-- Most basic cases:
 explain (verbose, costs off) select * from cst_float4 join cst_int4 using(a);
 select * from cst_float4 join cst_int4 using(a);
 
