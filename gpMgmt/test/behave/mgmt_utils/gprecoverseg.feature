@@ -170,7 +170,7 @@ Feature: gprecoverseg tests
       And gpstate output contains "differential" entries for mirrors of content 0
           And gpstate output looks like
               | Segment | Port   | Recovery type  | Stage                                      | Completed bytes \(kB\) | Percentage completed |
-              | \S+     | [0-9]+ | differential   | Syncing pg_data of dbid[ \t]+6             | ([\d,]+)[ \t]          | \d+%                 |
+              | \S+     | [0-9]+ | differential   | Syncing pg_data of dbid 6                  | ([\d,]+)[ \t]          | \d+%                 |
       And the user waits until saved async process is completed
       And all files in gpAdminLogs directory are deleted on all hosts in the cluster
       And sql "DROP TABLE IF EXISTS test_recoverseg;" is executed in "postgres" db
