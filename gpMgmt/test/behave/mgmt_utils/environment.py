@@ -22,13 +22,14 @@ def before_all(context):
         raise Exception("Requires at least behave version 1.2.6 (found %s)" % behave.__version__)
 
 def before_feature(context, feature):
-    for host in hosts:
-        ip = socket.gethostbyname(host)
-        name = "add {ip} and {host} to /etc/hosts".format(host=host, ip=ip)
-        cmdStr = """
-            gpssh -h {hosts} -e "sudo bash -c 'echo \"{ip} {host}\" >>/etc/hosts'"
-        """.format(host=host, ip=ip, hosts=' -h '.join(hosts))
-        Command(name, cmdStr).run(validateAfter=True)
+    if "concourse_cluster" in set(context.config.tags):
+        for host in hosts:
+            ip = socket.gethostbyname(host)
+            name = "add {ip} and {host} to /etc/hosts".format(host=host, ip=ip)
+            cmdStr = """
+                gpssh -h {hosts} -e "sudo bash -c 'echo \"{ip} {host}\" >>/etc/hosts'"
+            """.format(host=host, ip=ip, hosts=' -h '.join(hosts))
+            Command(name, cmdStr).run(validateAfter=True)
 
     if not hasattr(context, "cluster_created"):
         context.cluster_created = True
@@ -112,13 +113,14 @@ def after_feature(context, feature):
         Then the user runs "gpstop -aqM fast"
         And gpstop should return a return code of 0
         ''')
-    for host in hosts:
-        ip = socket.gethostbyname(host)
-        name = "del {ip} and {host} from /etc/hosts".format(host=host, ip=ip)
-        cmdStr = """
-            gpssh -h {hosts} -e "cat /etc/hosts | sed '/{ip} {host}/d' | sudo bash -c 'cat >/etc/hosts'"
-        """.format(host=host, ip=ip, hosts=' -h '.join(hosts))
-        Command(name, cmdStr).run(validateAfter=True)
+    if "concourse_cluster" in set(context.config.tags):
+        for host in hosts:
+            ip = socket.gethostbyname(host)
+            name = "del {ip} and {host} from /etc/hosts".format(host=host, ip=ip)
+            cmdStr = """
+                gpssh -h {hosts} -e "cat /etc/hosts | sed '/{ip} {host}/d' | sudo bash -c 'cat >/etc/hosts'"
+            """.format(host=host, ip=ip, hosts=' -h '.join(hosts))
+            Command(name, cmdStr).run(validateAfter=True)
 
 def before_scenario(context, scenario):
     if "skip" in scenario.effective_tags:
