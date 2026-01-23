@@ -73,7 +73,10 @@ def add_or_remove_blackhole_route(disconnected_hosts, spare_hosts, disconnect=Fa
 
 # do not disconnect the host from itself, as this adds nothing to the test
 def _blackhole_route_helper(disconnect_host, hosts, disconnect=False):
-    disconnect_addr = socket.gethostbyname(disconnect_host)
+    cmd = "cat /etc/hosts | grep {} | head -1 ".format(disconnect_host)
+    cmd += "| awk '{print $1}'"
+    disconnect_addr = subprocess.check_output(["bash", "-c", cmd])
+    disconnect_addr = disconnect_addr.strip()
 
     for host in hosts:
         if host == disconnect_host:
