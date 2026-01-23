@@ -2,6 +2,7 @@ import os
 import shutil
 
 import behave
+import socket
 from behave import use_fixture
 
 from test.behave_utils.utils import drop_database_if_exists, start_database_if_not_started,\
@@ -14,11 +15,21 @@ from steps.mgmt_utils import backup_bashrc, restore_bashrc
 from gppylib.db import dbconn
 from gppylib.commands.base import Command, REMOTE
 
+hosts = ["cdw"] + ['sdw{}'.format(i) for i in range(1, 6+1)]
+
 def before_all(context):
     if map(int, behave.__version__.split('.')) < [1,2,6]:
         raise Exception("Requires at least behave version 1.2.6 (found %s)" % behave.__version__)
 
 def before_feature(context, feature):
+    for host in hosts:
+        ip = socket.gethostbyname(host)
+        name = "add {ip} and {host} to /etc/hosts".format(host=host, ip=ip)
+        cmdStr = """
+            gpssh -h {hosts} -e "sudo bash -c 'echo \"{ip} {host}\" >>/etc/hosts'"
+        """.format(host=host, ip=ip, hosts=' -h '.join(hosts))
+        Command(name, cmdStr).run(validateAfter=True)
+
     if not hasattr(context, "cluster_created"):
         context.cluster_created = True
         from test.behave_utils.ci.fixtures import init_cluster
@@ -97,9 +108,17 @@ def after_feature(context, feature):
     if 'minirepro' in feature.tags:
         context.conn.close()
     context.execute_steps(u'''
-        Then the user runs "gpstop -a"
+        Given the database is running
+        Then the user runs "gpstop -aqM fast"
         And gpstop should return a return code of 0
         ''')
+    for host in hosts:
+        ip = socket.gethostbyname(host)
+        name = "del {ip} and {host} from /etc/hosts".format(host=host, ip=ip)
+        cmdStr = """
+            gpssh -h {hosts} -e "cat /etc/hosts | sed '/{ip} {host}/d' | sudo bash -c 'cat >/etc/hosts'"
+        """.format(host=host, ip=ip, hosts=' -h '.join(hosts))
+        Command(name, cmdStr).run(validateAfter=True)
 
 def before_scenario(context, scenario):
     if "skip" in scenario.effective_tags:
