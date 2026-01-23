@@ -1,20 +1,19 @@
 from behave import fixture
 from gppylib.commands.base import Command
+import socket
 
 
 @fixture
 def init_cluster(context):
     if "concourse_cluster" in set(context.config.tags):
-        host_ip = dict()
-        for host in ["cdw"] + ['sdw{}'.format(i) for i in range(1, 6+1)]:
-            cmd = Command("get ip", "host {host} | grep 'has address' | head -n 1 | cut -d ' ' -f 4".format(host=host))
-            cmd.run(validateAfter=True)
-            host_ip[host] = cmd.get_stdout()
-        for host, ip in host_ip.items():
-            cmd = Command("set ip", """
-                          gpssh -h cdw -h sdw1 -h sdw2 -h sdw3 -h sdw4 -h sdw5 -h sdw6 -e "sudo bash -c 'echo \"{ip} {host}\" >>/etc/hosts'"
-                          """.format(host=host, ip=ip))
-            cmd.run(validateAfter=True)
+        hosts = ["cdw"] + ['sdw{}'.format(i) for i in range(1, 6+1)]
+        for host in hosts:
+            ip = socket.gethostbyname(host)
+            name = "set {ip} and {host} to /etc/hosts".format(host=host, ip=ip)
+            cmdStr = """
+                gpssh -h {hosts} -e "sudo bash -c 'echo \"{ip} {host}\" >>/etc/hosts'"
+            """.format(host=host, ip=ip, hosts=' -h '.join(hosts))
+            Command(name, cmdStr).run(validateAfter=True)
         if "concourse_cluster_4" in set(context.feature.tags):
             segments = 4
         elif "concourse_cluster_2" in set(context.feature.tags):
