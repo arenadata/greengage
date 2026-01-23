@@ -25,6 +25,8 @@ from pygresql import pg
 PARTITION_START_DATE = '2010-01-01'
 PARTITION_END_DATE = '2013-01-01'
 
+master_data_dir = None
+
 
 def execute_sql(dbname, sql):
     result = None
