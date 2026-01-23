@@ -108,11 +108,11 @@ def after_feature(context, feature):
         context.conn.close()
     if 'minirepro' in feature.tags:
         context.conn.close()
-    context.execute_steps(u'''
-        Given the database is running
-        Then the user runs "gpstop -aqM fast"
-        And gpstop should return a return code of 0
-        ''')
+    if 'gpconfig' in feature.tags:
+        context.execute_steps(u'''
+            Then the user runs "gpstop -ar"
+            And gpstop should return a return code of 0
+            ''')
     if "concourse_cluster" in set(context.config.tags):
         for host in hosts:
             ip = socket.gethostbyname(host)
