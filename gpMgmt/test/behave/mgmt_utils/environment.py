@@ -15,7 +15,7 @@ from steps.mgmt_utils import backup_bashrc, restore_bashrc
 from gppylib.db import dbconn
 from gppylib.commands.base import Command, REMOTE
 
-hosts = ["cdw"] + ['sdw{}'.format(i) for i in range(1, 6+1)]
+hosts = ["cdw"] + ['sdw{i}'.format(i=i) for i in range(1, 6+1)]
 
 def before_all(context):
     if map(int, behave.__version__.split('.')) < [1,2,6]:
