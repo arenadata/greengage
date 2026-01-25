@@ -38,7 +38,7 @@ def before_feature(context, feature):
 
     # we should be able to run gpexpand without having a cluster initialized
     tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate', 'gpmovemirrors',
-                    'gpconfig', 'gpssh-exkeys', 'gpstop', 'gpinitsystem', 'cross_subnet',
+                    'gpconfig', 'ggssh_exkeys', 'gpstop', 'gpinitsystem', 'cross_subnet',
                     'gplogfilter']
     if set(context.feature.tags).intersection(tags_to_skip):
         return
@@ -142,11 +142,11 @@ def before_scenario(context, scenario):
     if 'gpconfig' in context.feature.tags:
         context.gpconfig_context = GpConfigContext()
 
-    if 'gpssh-exkeys' in context.feature.tags:
+    if 'ggssh_exkeys' in context.feature.tags:
         context.gpssh_exkeys_context = GpsshExkeysMgmtContext(context)
 
     tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate', 'gpmovemirrors',
-                    'gpconfig', 'gpssh-exkeys', 'gpstop', 'gpinitsystem', 'cross_subnet',
+                    'gpconfig', 'ggssh_exkeys', 'gpstop', 'gpinitsystem', 'cross_subnet',
                     'gplogfilter']
     if set(context.feature.tags).intersection(tags_to_skip):
         return
@@ -184,13 +184,13 @@ def after_scenario(context, scenario):
     if set(context.feature.tags).intersection(tags_to_skip):
         return
 
-    tags_to_cleanup = ['gpmovemirrors', 'gpssh-exkeys']
+    tags_to_cleanup = ['gpmovemirrors', 'ggssh_exkeys']
     if set(context.feature.tags).intersection(tags_to_cleanup) and "skip_cleanup" not in scenario.effective_tags:
         if 'temp_base_dir' in context and os.path.exists(context.temp_base_dir):
             os.chmod(context.temp_base_dir, 0o700)
             shutil.rmtree(context.temp_base_dir)
 
-    tags_to_not_restart_db = ['analyzedb', 'gpssh-exkeys']
+    tags_to_not_restart_db = ['analyzedb', 'ggssh_exkeys']
     if not set(context.feature.tags).intersection(tags_to_not_restart_db):
         start_database_if_not_started(context)
 
@@ -202,7 +202,7 @@ def after_scenario(context, scenario):
         if os.path.isdir('%s/gpAdminLogs.bk' % home_dir):
             shutil.move('%s/gpAdminLogs.bk' % home_dir, '%s/gpAdminLogs' % home_dir)
 
-    if 'gpssh' in context.feature.tags:
+    if 'ggssh' in context.feature.tags:
         run_command(context, 'sudo tc qdisc del dev lo root netem')
 
     # for cleaning up after @given('"{path}" has its permissions set to "{perm}" on {host}')

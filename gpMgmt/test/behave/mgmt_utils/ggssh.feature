@@ -1,5 +1,5 @@
-@gpssh
-Feature: gpssh behave tests
+@ggssh
+Feature: ggssh behave tests
 
     Scenario: gpssh -d and -t options
         When the user runs "gpssh -v -h localhost hostname"
