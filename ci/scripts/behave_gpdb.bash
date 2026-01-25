@@ -33,6 +33,9 @@ function _main() {
 				exit 1
 		fi
 
+		cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+		chmod 600 ~/.ssh/authorized_keys
+
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| --tags=~concourse_cluster||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -f behave_utils.ci.formatter:CustomFormatter||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o non-existed-output||g")"
