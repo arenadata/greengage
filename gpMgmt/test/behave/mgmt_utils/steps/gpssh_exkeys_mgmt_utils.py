@@ -246,8 +246,7 @@ def impl(context):
         '-e',
         ] + host_opts + [(
         'mkdir -p /tmp/ssh.bak '
-        '&& cp -f ~/.ssh/* /tmp/ssh.bak '
-        '&& rm -rf ~/.ssh/* '
+        '&& mv -f ~/.ssh/* /tmp/ssh.bak '
         '&& cp -fp /tmp/ssh.bak/authorized_keys ~/.ssh/'
     )])
 
@@ -265,8 +264,7 @@ def impl(context):
             'gpssh',
             '-e',
             ] + host_opts + [
-            'cp -f /tmp/ssh.bak/* ~/.ssh/ '
-            '&& rm -rf /tmp/ssh.bak/*',
+            'mv -f /tmp/ssh.bak/* ~/.ssh/',
         ])
         for f in os.listdir(backup_path):
             shutil.move(path.join(backup_path, f), path.join(home_ssh, f))
