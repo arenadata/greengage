@@ -11,6 +11,9 @@ function gen_env(){
 		cat > /opt/run_test.sh <<-EOF
 		set -ex
 
+		cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+		chmod 600 ~/.ssh/authorized_keys
+
 		source /usr/local/greengage-db-devel/greengage_path.sh
 
 		cd "\${1}/gpdb_src/gpMgmt/"
@@ -32,9 +35,6 @@ function _main() {
 				echo "FATAL: BEHAVE_TAGS or BEHAVE_FLAGS not set"
 				exit 1
 		fi
-
-		cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-		chmod 600 ~/.ssh/authorized_keys
 
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| --tags=~concourse_cluster||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -f behave_utils.ci.formatter:CustomFormatter||g")"
