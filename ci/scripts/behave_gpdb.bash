@@ -36,6 +36,11 @@ function _main() {
 				exit 1
 		fi
 
+		chown -R gpadmin:gpadmin /home/gpadmin/.ssh
+		chmod 700 /home/gpadmin/.ssh
+		chmod 600 /home/gpadmin/.ssh/id_rsa
+		chmod 644 /home/gpadmin/.ssh/id_rsa.pub
+
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| --tags=~concourse_cluster||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -f behave_utils.ci.formatter:CustomFormatter||g")"
 		export BEHAVE_FLAGS="$(echo "$BEHAVE_FLAGS" | sed -e "s| -o non-existed-output||g")"
