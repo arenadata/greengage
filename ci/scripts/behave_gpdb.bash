@@ -14,8 +14,6 @@ function gen_env(){
 		cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 		chmod 600 ~/.ssh/authorized_keys
 
-		source /usr/local/greengage-db-devel/greengage_path.sh
-
 		cd "\${1}/gpdb_src/gpMgmt/"
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
 		BEHAVE_FLAGS="${BEHAVE_FLAGS} --tags=${CLUSTER}"
