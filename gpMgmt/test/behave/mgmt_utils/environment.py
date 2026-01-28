@@ -121,7 +121,7 @@ def before_scenario(context, scenario):
     if 'gpconfig' in context.feature.tags:
         context.gpconfig_context = GpConfigContext()
 
-    if 'gpssh_exkeys' in context.feature.tags:
+    if 'gpssh-exkeys' in context.feature.tags:
         context.gpssh_exkeys_context = GpsshExkeysMgmtContext(context)
 
     tags_to_skip = ['gpexpand', 'gpaddmirrors', 'gpstate', 'gpmovemirrors',
