@@ -1497,24 +1497,17 @@ CUtils::Equals(const CExpressionArray *pdrgpexprLeft,
 }
 
 // helper for CUtils::Equals, practically useless on its own
-static CExpression *
-SkipCastWithinOpfamily(const CExpression *pexprFirst,
-					   const CExpression *pexprSecond)
+static const CExpression *
+SkipCastWithinOpfamilyIfPossible(const CExpression *pexpr)
 {
-	if (pexprFirst->Pop()->Eopid() != COperator::EopScalarCast ||
-		pexprSecond->Pop()->Eopid() != COperator::EopScalarIdent)
+	if (pexpr->Pop()->Eopid() != COperator::EopScalarCast)
 	{
-		return nullptr;
+		return pexpr;
 	}
 
-	CExpression *pexprChild = (*pexprFirst)[0];
-	if (COperator::EopScalarIdent != pexprChild->Pop()->Eopid())
-	{
-		return nullptr;
-	}
-
-	CScalarIdent *popChild = CScalarIdent::PopConvert(pexprChild->Pop());
-	CScalarCast *popCast = CScalarCast::PopConvert(pexprFirst->Pop());
+	const CExpression *pexprChild = (*pexpr)[0];
+	CScalar *popChild = CScalar::PopConvert(pexprChild->Pop());
+	CScalarCast *popCast = CScalarCast::PopConvert(pexpr->Pop());
 	IMDId *mdidSource = popChild->MdidType();
 	IMDId *mdidDest = popCast->MdidType();
 
@@ -1526,7 +1519,7 @@ SkipCastWithinOpfamily(const CExpression *pexprFirst,
 	IMDId *mdidTargetOpfamily = mdtDestType->GetDistrOpfamilyMdid();
 	if (!CUtils::Equals(mdidSourceOpfamily, mdidTargetOpfamily))
 	{
-		return nullptr;
+		return pexpr;
 	}
 
 	return pexprChild;
@@ -1551,12 +1544,14 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 	{
 		return true;
 	}
-	// Allow a column reference and the same column reference
+	// Allow an expression and the same expession
 	// casted to a different type within the same distribution opfamily
 	// be considered equal.
 	// E.g., let's suppose we have a table with a column of a type
 	// int2 named int2_column, then it would be considered equal
 	// to int2_column::int4 or int2_column::int8.
+	// This logic applies even if both expressions are converted
+	// to different types, e.g., int2_column::int4 = int2_column::int8
 	//
 	// In this case, presence of the cast doesn't change how the value is
 	// distributed, meaning that redistribution motion is not required.
@@ -1574,19 +1569,8 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) &&
 		fMatchDistribution)
 	{
-		CExpression *pexprNewLeft =
-			SkipCastWithinOpfamily(pexprLeft, pexprRight);
-		CExpression *pexprNewRight =
-			SkipCastWithinOpfamily(pexprRight, pexprLeft);
-		GPOS_ASSERT(nullptr == pexprNewLeft || nullptr == pexprNewRight);
-		if (nullptr != pexprNewLeft)
-		{
-			pexprLeft = pexprNewLeft;
-		}
-		if (nullptr != pexprNewRight)
-		{
-			pexprRight = pexprNewRight;
-		}
+		pexprLeft = SkipCastWithinOpfamilyIfPossible(pexprLeft);
+		pexprRight = SkipCastWithinOpfamilyIfPossible(pexprRight);
 	}
 
 	// compare number of children and root operators
