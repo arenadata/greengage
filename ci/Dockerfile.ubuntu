@@ -20,8 +20,8 @@ RUN set -eux; \
         apt install -y krb5-kdc krb5-admin-server fakeroot sudo python-pip \
             openjdk-11-jdk protobuf-compiler python3-dev; \
 # Install allure-behave for behave tests
-    pip2 install allure-behave==2.4.0 future; \
-    pip2 cache purge;
+    python -m pip install allure-behave==2.4.0 future; \
+    python -m pip cache purge;
 
 WORKDIR /home/gpadmin
 ENV CONFIGURE_FLAGS="--enable-debug-extensions --with-gssapi --enable-cassert --enable-debug --enable-depend"
