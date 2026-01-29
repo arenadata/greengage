@@ -112,9 +112,9 @@ def add_parameter(filename, name, value):
         for line in lines:
             outfile.write(line)
             new_lines = new_lines + 1
-        outfile.write(bytes(name) + '=' +
-                      bytes(pickle.loads(base64.urlsafe_b64decode(value))) +
-                      os.linesep)
+        outfile.write(bytes(name, 'utf-8') + '=' +
+                      bytes(pickle.loads(base64.urlsafe_b64decode(value)), 'utf-8') +
+                      bytes(os.linesep, 'utf-8'))
         new_lines = new_lines + 1
 
     if new_lines == len(lines) + 1:
