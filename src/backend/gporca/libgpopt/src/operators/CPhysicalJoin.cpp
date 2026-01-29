@@ -24,6 +24,7 @@
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarIsDistinctFrom.h"
 #include "naucrates/md/IMDScalarOp.h"
+#include "naucrates/traceflags/traceflags.h"
 
 using namespace gpopt;
 
@@ -361,6 +362,17 @@ CPhysicalJoin::PedInnerHashedFromOuterHashed(
 				IMDId *mdidOpfamilyOuter =
 					mdAccessor->RetrieveType(pmdidTypeOuter)
 						->GetDistrOpfamilyMdid();
+
+				/*
+				 * TODO: add a comment why this logic exists
+				 */
+				if (!mdidOpfamilyInner || !mdidOpfamilyOuter)
+				{
+					GPOS_ASSERT(!GPOS_FTRACE(
+						EopttraceConsiderOpfamiliesForDistribution));
+					fSuccess = false;
+					continue;
+				}
 
 				if (mdidOpfamilyOuter->Equals(mdidOpfamilyInner) &&
 					mdAccessor->RetrieveType(pmdidTypeInner)->IsHashable())

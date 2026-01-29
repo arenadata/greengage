@@ -4897,7 +4897,6 @@ CUtils::PexprMatchEqualityOrINDF(
 		CExpression *pexprPred = (*pdrgpexpr)[ul];
 		CExpression *pexprPredOuter, *pexprPredInner;
 
-
 		if (CPredicateUtils::IsEqualityOp(pexprPred))
 		{
 			pexprPredOuter = (*pexprPred)[0];
@@ -4917,35 +4916,55 @@ CUtils::PexprMatchEqualityOrINDF(
 			CScalar::PopConvert(pexprPredOuter->Pop())->MdidType();
 		IMDId *pmdidTypeInner =
 			CScalar::PopConvert(pexprPredInner->Pop())->MdidType();
-		if (!pmdidTypeOuter->Equals(pmdidTypeInner))
+		BOOL fTypesAreEqual = pmdidTypeOuter->Equals(pmdidTypeInner);
+
+		// TODO: explain why we need this
+		// First, try the old logic
+		if (fTypesAreEqual)
 		{
-			// only consider equality of identical types
-			continue;
+			CExpression *pexprOuterToMatch = pexprPredOuter;
+			CExpression *pexprInnerToMatch = pexprPredInner;
+			CExpression *pexprToMatchWithoutCasts = pexprToMatch;
+
+			pexprToMatchWithoutCasts =
+				CCastUtils::PexprWithoutBinaryCoercibleCasts(
+					pexprToMatchWithoutCasts);
+			pexprOuterToMatch =
+				CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprOuterToMatch);
+			pexprInnerToMatch =
+				CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprInnerToMatch);
+
+			if (CUtils::Equals(pexprOuterToMatch, pexprToMatchWithoutCasts))
+			{
+				pexprMatching = pexprPredInner;
+			}
+			if (CUtils::Equals(pexprInnerToMatch, pexprToMatchWithoutCasts))
+			{
+				pexprMatching = pexprPredOuter;
+			}
+			if (pexprMatching)
+			{
+				pexprMatching =
+					CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprMatching);
+				break;
+			}
 		}
 
-		pexprToMatch =
-			CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprToMatch);
-		if (CUtils::Equals(
-				CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredOuter),
-				pexprToMatch))
+		// And then, the new one
+		if (CUtils::EqualDistributions(pexprPredOuter, pexprToMatch))
 		{
 			pexprMatching = pexprPredInner;
-			break;
 		}
-
-		if (CUtils::Equals(
-				CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredInner),
-				pexprToMatch))
+		if (CUtils::EqualDistributions(pexprPredInner, pexprToMatch))
 		{
 			pexprMatching = pexprPredOuter;
+		}
+		if (pexprMatching)
+		{
 			break;
 		}
 	}
 
-	if (nullptr != pexprMatching)
-	{
-		return CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprMatching);
-	}
 	return pexprMatching;
 }
 
