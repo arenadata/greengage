@@ -363,9 +363,13 @@ CPhysicalJoin::PedInnerHashedFromOuterHashed(
 					mdAccessor->RetrieveType(pmdidTypeOuter)
 						->GetDistrOpfamilyMdid();
 
-				/*
-				 * TODO: add a comment why this logic exists
-				 */
+				// We might get here with null hashfamilies if we join on integer types
+				// (or other 'non-generic' types)
+				// with EopttraceConsiderOpfamiliesForDistribution set to off.
+				// If a type doesn't have its own subclass (i.e., it is CMDTypeGenericGPDB),
+				// then it is fine because distribution is set for it anyway.
+				//
+				// TODO: can this edge case be removed?
 				if (!mdidOpfamilyInner || !mdidOpfamilyOuter)
 				{
 					GPOS_ASSERT(!GPOS_FTRACE(

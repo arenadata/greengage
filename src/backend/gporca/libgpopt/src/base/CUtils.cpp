@@ -1544,7 +1544,7 @@ CUtils::Equals(const CExpression *pexprLeft, const CExpression *pexprRight,
 	{
 		return true;
 	}
-	// Allow an expression and the same expession
+	// Allow an expression and the same expression
 	// casted to a different type within the same distribution opfamily
 	// be considered equal.
 	// E.g., let's suppose we have a table with a column of a type
@@ -4918,8 +4918,10 @@ CUtils::PexprMatchEqualityOrINDF(
 			CScalar::PopConvert(pexprPredInner->Pop())->MdidType();
 		BOOL fTypesAreEqual = pmdidTypeOuter->Equals(pmdidTypeInner);
 
-		// TODO: explain why we need this
-		// First, try the old logic
+		// First, try the original logic.
+		// It 'should' be a subset of the logic below, but many tests already
+		// expect that we behave this way.
+		// Maybe we should clean it up?
 		if (fTypesAreEqual)
 		{
 			CExpression *pexprOuterToMatch = pexprPredOuter;
@@ -4950,7 +4952,7 @@ CUtils::PexprMatchEqualityOrINDF(
 			}
 		}
 
-		// And then, the new one
+		// Then, the more powerful one
 		if (CUtils::EqualDistributions(pexprPredOuter, pexprToMatch))
 		{
 			pexprMatching = pexprPredInner;
