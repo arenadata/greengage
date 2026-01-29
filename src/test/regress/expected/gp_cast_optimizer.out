@@ -980,7 +980,152 @@ select * from cst_int2_int4
   7 |  7
 (10 rows)
 
+-- Test several queries with nested-loop join
+set optimizer_enable_nljoin = true;
+set enable_nestloop = true;
+set optimizer_enable_hashjoin = false;
+set enable_hashjoin = false;
+explain (verbose, costs off) select * from cst_int2 join cst_int4 using(a);
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_int4.a
+   ->  Nested Loop
+         Output: cst_int4.a
+         Join Filter: (cst_int2.a = cst_int4.a)
+         ->  Seq Scan on public.cst_int2
+               Output: cst_int2.a
+         ->  Seq Scan on public.cst_int4
+               Output: cst_int4.a
+ Optimizer: GPORCA
+ Settings: optimizer_enable_hashjoin = 'off', optimizer_enable_mergejoin = 'off', optimizer_join_order = 'query'
+(11 rows)
+
+select * from cst_int2 join cst_int4 using(a);
+ a  
+----
+  5
+  6
+  9
+ 10
+  7
+  8
+(6 rows)
+
+-- Subtle behavior ahead: in ORCA, nested loop joins don't support equivalent expressions
+-- like hash joins do.
+-- So, when join order is fixed, we need to be careful with the join condition,
+-- otherwise we might get a broadcast motion.
+explain (verbose, costs off)
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_int2.a, cst_int4.a, cst_int8.a
+   ->  Nested Loop
+         Output: cst_int2.a, cst_int4.a, cst_int8.a
+         Join Filter: (cst_int4.a = cst_int8.a)
+         ->  Broadcast Motion 3:3  (slice2; segments: 3)
+               Output: cst_int2.a, cst_int4.a
+               ->  Nested Loop
+                     Output: cst_int2.a, cst_int4.a
+                     Join Filter: (cst_int2.a = cst_int4.a)
+                     ->  Seq Scan on public.cst_int2
+                           Output: cst_int2.a
+                     ->  Seq Scan on public.cst_int4
+                           Output: cst_int4.a
+         ->  Seq Scan on public.cst_int8
+               Output: cst_int8.a
+ Optimizer: GPORCA
+ Settings: optimizer_enable_hashjoin = 'off', optimizer_enable_mergejoin = 'off', optimizer_join_order = 'query'
+(18 rows)
+
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+ a  | a  | a  
+----+----+----
+ 10 | 10 | 10
+(1 row)
+
+-- Luckily, when join order is not fixed, optimizer finds a join path that
+-- gets rid of the broadcast.
 reset optimizer_join_order;
+explain (verbose, costs off)
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_int2.a, cst_int4.a, cst_int8.a
+   ->  Nested Loop
+         Output: cst_int2.a, cst_int4.a, cst_int8.a
+         Join Filter: (cst_int4.a = cst_int8.a)
+         ->  Seq Scan on public.cst_int8
+               Output: cst_int8.a
+         ->  Nested Loop
+               Output: cst_int2.a, cst_int4.a
+               Join Filter: (cst_int2.a = cst_int4.a)
+               ->  Seq Scan on public.cst_int2
+                     Output: cst_int2.a
+               ->  Seq Scan on public.cst_int4
+                     Output: cst_int4.a
+ Optimizer: GPORCA
+ Settings: optimizer_enable_hashjoin = 'off', optimizer_enable_mergejoin = 'off'
+(16 rows)
+
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+ a  | a  | a  
+----+----+----
+ 10 | 10 | 10
+(1 row)
+
+-- Test very specific logic for a join on several keys with an index in ORCA
+create index cst_int4_int8_idx on cst_int4_int8 (b);
+explain (verbose, costs off)
+select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
+NOTICE:  One or more columns in the following table(s) do not have statistics: cst_int4_int8
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: t1.a, t1.b, t2.a, t2.b
+   ->  Nested Loop
+         Output: t1.a, t1.b, t2.a, t2.b
+         Join Filter: true
+         ->  Seq Scan on public.cst_int2_int4 t1
+               Output: t1.a, t1.b
+         ->  Index Scan using cst_int4_int8_idx on public.cst_int4_int8 t2
+               Output: t2.a, t2.b
+               Index Cond: (t2.b = t1.b)
+               Filter: (t1.a = t2.a)
+ Optimizer: GPORCA
+ Settings: optimizer_enable_hashjoin = 'off', optimizer_enable_mergejoin = 'off'
+(13 rows)
+
+select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
+NOTICE:  One or more columns in the following table(s) do not have statistics: cst_int4_int8
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+ a  | b  | a  | b  
+----+----+----+----
+  2 |  2 |  2 |  2
+  3 |  3 |  3 |  3
+  4 |  4 |  4 |  4
+  5 |  5 |  5 |  5
+  7 |  7 |  7 |  7
+  1 |  1 |  1 |  1
+  6 |  6 |  6 |  6
+  8 |  8 |  8 |  8
+  9 |  9 |  9 |  9
+ 10 | 10 | 10 | 10
+(10 rows)
+
+drop index cst_int4_int8_idx;
 drop table cst_int2;
 drop table cst_int4;
 drop table cst_int8;
@@ -990,7 +1135,9 @@ drop table cst_text;
 drop table cst_int2_int4;
 drop table cst_int4_int8;
 reset optimizer_trace_fallback;
+reset enable_hashjoin;
 reset enable_nestloop;
 reset enable_mergejoin;
+reset optimizer_enable_hashjoin;
 reset optimizer_enable_nljoin;
 reset optimizer_enable_mergejoin;

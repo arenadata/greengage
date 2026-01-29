@@ -36,7 +36,6 @@ create table cst_text as (select a::text from generate_series(5, 15) as a) distr
 create table cst_int2_int4 as (select gen::int2 as a, gen::int4 as b from generate_series(1, 10) as gen) distributed by (a, b);
 create table cst_int4_int8 as (select gen::int4 as a, gen::int8 as b from generate_series(1, 10) as gen) distributed by (a, b);
 
-
 -- Perform an inner join on all hash opfamilies containing more than one type.
 -- We shouldn't see any redistributions, because:
 --    The postgres-based planner has operators that work on different types.
@@ -80,7 +79,6 @@ select * from cst_int2
     join cst_int4 using(a);
 
 reset optimizer_join_order;
-
 
 -- Confirm that the same logic is correct for other join types
 explain (verbose, costs off) select * from cst_int2 full join cst_int4 using(a);
@@ -196,7 +194,48 @@ with cst_int2_int4_copy as (select * from cst_int2_int4)
 select * from cst_int2_int4
     natural join cst_int4_int8
     natural join cst_int2_int4_copy;
+
+
+-- Test several queries with nested-loop join
+set optimizer_enable_nljoin = true;
+set enable_nestloop = true;
+set optimizer_enable_hashjoin = false;
+set enable_hashjoin = false;
+
+explain (verbose, costs off) select * from cst_int2 join cst_int4 using(a);
+select * from cst_int2 join cst_int4 using(a);
+
+-- Subtle behavior ahead: in ORCA, nested loop joins don't support equivalent expressions
+-- like hash joins do.
+-- So, when join order is fixed, we need to be careful with the join condition,
+-- otherwise we might get a broadcast motion.
+explain (verbose, costs off)
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+
+-- Luckily, when join order is not fixed, optimizer finds a join path that
+-- gets rid of the broadcast.
 reset optimizer_join_order;
+explain (verbose, costs off)
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+
+select * from cst_int2
+    join cst_int4 on cst_int2.a = cst_int4.a
+    join cst_int8 on cst_int4.a = cst_int8.a;
+
+-- Test very specific logic for a join on several keys with an index in ORCA
+create index cst_int4_int8_idx on cst_int4_int8 (b);
+explain (verbose, costs off)
+select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
+select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
+drop index cst_int4_int8_idx;
 
 
 drop table cst_int2;
@@ -209,7 +248,9 @@ drop table cst_int2_int4;
 drop table cst_int4_int8;
 
 reset optimizer_trace_fallback;
+reset enable_hashjoin;
 reset enable_nestloop;
 reset enable_mergejoin;
+reset optimizer_enable_hashjoin;
 reset optimizer_enable_nljoin;
 reset optimizer_enable_mergejoin;
