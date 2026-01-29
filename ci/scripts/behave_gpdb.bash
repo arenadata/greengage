@@ -13,7 +13,7 @@ function gen_env(){
 
 		cd "\${1}/gpdb_src/gpMgmt/"
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
-		BEHAVE_FLAGS="${BEHAVE_FLAGS}
+		BEHAVE_FLAGS="${BEHAVE_FLAGS}"
 		if [ ! -z "\${BEHAVE_TAGS}" ]; then
 				make -f Makefile.behave behave tags=\${BEHAVE_TAGS}
 		else
