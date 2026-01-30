@@ -29,6 +29,7 @@ do
   docker compose -p $project -f ci/docker-compose.yaml exec -T \
     $service bash -c "ssh-keyscan ${services/$service/} >> /home/gpadmin/.ssh/known_hosts" &
 done
+wait
 
 # Add ip and host to /etc/hosts
 for service in $services
