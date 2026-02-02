@@ -4916,53 +4916,54 @@ CUtils::PexprMatchEqualityOrINDF(
 			CScalar::PopConvert(pexprPredOuter->Pop())->MdidType();
 		IMDId *pmdidTypeInner =
 			CScalar::PopConvert(pexprPredInner->Pop())->MdidType();
-		BOOL fTypesAreEqual = pmdidTypeOuter->Equals(pmdidTypeInner);
 
-		// First, try the original logic.
-		// It 'should' be a subset of the logic below, but many tests already
-		// expect that we behave this way.
-		// Maybe we should clean it up?
-		if (fTypesAreEqual)
+		CMDAccessor *mdAccessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+		IMDId *mdidOpfamilyInner =
+			mdAccessor->RetrieveType(pmdidTypeInner)
+				->GetDistrOpfamilyMdid();
+
+		IMDId *mdidOpfamilyOuter =
+			mdAccessor->RetrieveType(pmdidTypeOuter)
+				->GetDistrOpfamilyMdid();
+
+		// Callers of this function expect that they can distribute by the
+		// expression returned, and there were no guarantees
+		// about it before this call.
+		//
+		// For the time being, just don't return such expressions,
+		// but it doesn't seem that this logic belongs here.
+		// TODO: check if refactoring it is possible.
+		if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) && (!mdidOpfamilyInner || !mdidOpfamilyOuter))
 		{
-			CExpression *pexprOuterToMatch = pexprPredOuter;
-			CExpression *pexprInnerToMatch = pexprPredInner;
-			CExpression *pexprToMatchWithoutCasts = pexprToMatch;
-
-			pexprToMatchWithoutCasts =
-				CCastUtils::PexprWithoutBinaryCoercibleCasts(
-					pexprToMatchWithoutCasts);
-			pexprOuterToMatch =
-				CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprOuterToMatch);
-			pexprInnerToMatch =
-				CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprInnerToMatch);
-
-			if (CUtils::Equals(pexprOuterToMatch, pexprToMatchWithoutCasts))
-			{
-				pexprMatching = pexprPredInner;
-			}
-			if (CUtils::Equals(pexprInnerToMatch, pexprToMatchWithoutCasts))
-			{
-				pexprMatching = pexprPredOuter;
-			}
-			if (pexprMatching)
-			{
-				pexprMatching =
-					CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprMatching);
-				break;
-			}
+			continue;
 		}
 
-		// Then, the more powerful one
-		if (CUtils::EqualDistributions(pexprPredOuter, pexprToMatch))
+		// Note that we need to manually remove binary coercible casts here,
+		// while for other join types this is done when they are being constructed
+		// (see CPhysicalJoin::AlignJoinKeyOuterInner).
+		//
+		// TODO: It is not immediately clear why this difference exists, and maybe
+		// it can be simplified?
+		CExpression *pexprOuterToMatch =
+		    CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredOuter);
+		CExpression *pexprInnerToMatch =
+		    CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredInner);
+		pexprToMatch =
+		    CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprToMatch);
+
+		if (CUtils::EqualDistributions(pexprOuterToMatch, pexprToMatch))
 		{
 			pexprMatching = pexprPredInner;
 		}
-		if (CUtils::EqualDistributions(pexprPredInner, pexprToMatch))
+		if (CUtils::EqualDistributions(pexprInnerToMatch, pexprToMatch))
 		{
 			pexprMatching = pexprPredOuter;
 		}
 		if (pexprMatching)
 		{
+			pexprMatching =
+				CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprMatching);
 			break;
 		}
 	}
