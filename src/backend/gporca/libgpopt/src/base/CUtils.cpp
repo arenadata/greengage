@@ -4920,12 +4920,10 @@ CUtils::PexprMatchEqualityOrINDF(
 		CMDAccessor *mdAccessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 		IMDId *mdidOpfamilyInner =
-			mdAccessor->RetrieveType(pmdidTypeInner)
-				->GetDistrOpfamilyMdid();
+			mdAccessor->RetrieveType(pmdidTypeInner)->GetDistrOpfamilyMdid();
 
 		IMDId *mdidOpfamilyOuter =
-			mdAccessor->RetrieveType(pmdidTypeOuter)
-				->GetDistrOpfamilyMdid();
+			mdAccessor->RetrieveType(pmdidTypeOuter)->GetDistrOpfamilyMdid();
 
 		// Callers of this function expect that they can distribute by the
 		// expression returned, and there were no guarantees
@@ -4934,7 +4932,8 @@ CUtils::PexprMatchEqualityOrINDF(
 		// For the time being, just don't return such expressions,
 		// but it doesn't seem that this logic belongs here.
 		// TODO: check if refactoring it is possible.
-		if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) && (!mdidOpfamilyInner || !mdidOpfamilyOuter))
+		if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution) &&
+			(!mdidOpfamilyInner || !mdidOpfamilyOuter))
 		{
 			continue;
 		}
@@ -4946,11 +4945,11 @@ CUtils::PexprMatchEqualityOrINDF(
 		// TODO: It is not immediately clear why this difference exists, and maybe
 		// it can be simplified?
 		CExpression *pexprOuterToMatch =
-		    CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredOuter);
+			CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredOuter);
 		CExpression *pexprInnerToMatch =
-		    CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredInner);
+			CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredInner);
 		pexprToMatch =
-		    CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprToMatch);
+			CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprToMatch);
 
 		if (CUtils::EqualDistributions(pexprOuterToMatch, pexprToMatch))
 		{
