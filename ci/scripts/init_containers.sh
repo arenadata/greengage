@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -eox pipefail
 
 project="$1"
 
