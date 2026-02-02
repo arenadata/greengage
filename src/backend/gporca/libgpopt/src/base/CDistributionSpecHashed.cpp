@@ -629,6 +629,17 @@ CDistributionSpecHashed::Equals(const CDistributionSpec *input_spec) const
 	CExpressionArrays *other_spec_equiv_exprs =
 		other_spec->HashSpecEquivExprs();
 
+	// The equality below should probably be strict, without need
+	// for calling CUtils::EqualDistributions,
+	// because the callers of this functions usually require
+	// direct expression matching.
+	//
+	// For example, one of the call chains leads to
+	// CCostContext::Equals and then to СGroupExpression::PccInsert
+	//
+	// But there are a lot of calls to this function, and given how
+	// nuanced ORCA can be, it is not strightforward to confirm this
+	// with certainty.
 	return CUtils::Equals(spec_equiv_exprs, other_spec_equiv_exprs);
 }
 
