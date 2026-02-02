@@ -33,6 +33,7 @@ create table cst_int8 as (select a::int8 from generate_series(10, 20) as a) dist
 create table cst_float4 as (select a::float4 from generate_series(5, 15, 0.5) as a) distributed by (a);
 create table cst_float8 as (select a::float8 from generate_series(5, 15, 0.5) as a) distributed by (a);
 create table cst_text as (select a::text from generate_series(5, 15) as a) distributed by (a);
+create table cst_varchar as (select a::varchar from generate_series(5, 15) as a) distributed by (a);
 create table cst_int2_int4 as (select gen::int2 as a, gen::int4 as b from generate_series(1, 10) as gen) distributed by (a, b);
 create table cst_int4_int8 as (select gen::int4 as a, gen::int8 as b from generate_series(1, 10) as gen) distributed by (a, b);
 
@@ -140,6 +141,12 @@ select * from cst_int2 join cst_int4 on cst_int2.a::int4 = cst_int4.a;
 explain (verbose, costs off) select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
 select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_float4_f.a::int::float4 = cst_float4_s.a;
 
+-- Check that binary coercible casts are ruled out
+explain (verbose, costs off) select * from cst_varchar as foo join cst_varchar as bar using(a);
+select * from cst_varchar as foo join cst_varchar as bar using(a);
+
+explain (verbose, costs off) select * from cst_varchar join cst_text using(a);
+select * from cst_varchar join cst_text using(a);
 
 -- Сheck that we don't rule out necessary distributions.
 -- Most basic cases:
@@ -236,6 +243,13 @@ explain (verbose, costs off)
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
 select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t1.b = t2.b);
 drop index cst_int4_int8_idx;
+
+-- Binary coercible casts should be ruled out too
+explain (verbose, costs off) select * from cst_varchar as foo join cst_varchar as bar using(a);
+select * from cst_varchar as foo join cst_varchar as bar using(a);
+
+explain (verbose, costs off) select * from cst_varchar join cst_text using(a);
+select * from cst_varchar join cst_text using(a);
 
 
 drop table cst_int2;

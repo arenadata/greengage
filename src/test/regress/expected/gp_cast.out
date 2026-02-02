@@ -19,6 +19,7 @@ create table cst_int8 as (select a::int8 from generate_series(10, 20) as a) dist
 create table cst_float4 as (select a::float4 from generate_series(5, 15, 0.5) as a) distributed by (a);
 create table cst_float8 as (select a::float8 from generate_series(5, 15, 0.5) as a) distributed by (a);
 create table cst_text as (select a::text from generate_series(5, 15) as a) distributed by (a);
+create table cst_varchar as (select a::varchar from generate_series(5, 15) as a) distributed by (a);
 create table cst_int2_int4 as (select gen::int2 as a, gen::int4 as b from generate_series(1, 10) as gen) distributed by (a, b);
 create table cst_int4_int8 as (select gen::int4 as a, gen::int8 as b from generate_series(1, 10) as gen) distributed by (a, b);
 -- Perform an inner join on all hash opfamilies containing more than one type.
@@ -651,6 +652,75 @@ select * from cst_float4 as cst_float4_f join cst_float4 as cst_float4_s on cst_
  13.5 | 14
 (21 rows)
 
+-- Check that binary coercible casts are ruled out
+explain (verbose, costs off) select * from cst_varchar as foo join cst_varchar as bar using(a);
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: foo.a
+   ->  Hash Join
+         Output: foo.a
+         Hash Cond: ((foo.a)::text = (bar.a)::text)
+         ->  Seq Scan on public.cst_varchar foo
+               Output: foo.a
+         ->  Hash
+               Output: bar.a
+               ->  Seq Scan on public.cst_varchar bar
+                     Output: bar.a
+ Optimizer: Postgres-based planner
+ Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
+(13 rows)
+
+select * from cst_varchar as foo join cst_varchar as bar using(a);
+ a  
+----
+ 7
+ 5
+ 6
+ 8
+ 15
+ 9
+ 10
+ 11
+ 12
+ 13
+ 14
+(11 rows)
+
+explain (verbose, costs off) select * from cst_varchar join cst_text using(a);
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_varchar.a
+   ->  Hash Join
+         Output: cst_varchar.a
+         Hash Cond: ((cst_varchar.a)::text = cst_text.a)
+         ->  Seq Scan on public.cst_varchar
+               Output: cst_varchar.a
+         ->  Hash
+               Output: cst_text.a
+               ->  Seq Scan on public.cst_text
+                     Output: cst_text.a
+ Optimizer: Postgres-based planner
+ Settings: optimizer = 'off', optimizer_enable_mergejoin = 'off', optimizer_enable_nljoin = 'off'
+(13 rows)
+
+select * from cst_varchar join cst_text using(a);
+ a  
+----
+ 5
+ 6
+ 8
+ 15
+ 7
+ 9
+ 10
+ 11
+ 12
+ 13
+ 14
+(11 rows)
+
 -- Сheck that we don't rule out necessary distributions.
 -- Most basic cases:
 explain (verbose, costs off) select * from cst_float4 join cst_int4 using(a);
@@ -1120,6 +1190,75 @@ select * from cst_int2_int4 as t1 join cst_int4_int8 as t2 on (t1.a = t2.a and t
 (10 rows)
 
 drop index cst_int4_int8_idx;
+-- Binary coercible casts should be ruled out too
+explain (verbose, costs off) select * from cst_varchar as foo join cst_varchar as bar using(a);
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: foo.a
+   ->  Nested Loop
+         Output: foo.a
+         Join Filter: ((foo.a)::text = (bar.a)::text)
+         ->  Seq Scan on public.cst_varchar foo
+               Output: foo.a
+         ->  Materialize
+               Output: bar.a
+               ->  Seq Scan on public.cst_varchar bar
+                     Output: bar.a
+ Optimizer: Postgres-based planner
+ Settings: enable_hashjoin = 'off', enable_nestloop = 'on', optimizer = 'off', optimizer_enable_hashjoin = 'off', optimizer_enable_mergejoin = 'off'
+(13 rows)
+
+select * from cst_varchar as foo join cst_varchar as bar using(a);
+ a  
+----
+ 5
+ 6
+ 8
+ 15
+ 9
+ 10
+ 11
+ 12
+ 13
+ 14
+ 7
+(11 rows)
+
+explain (verbose, costs off) select * from cst_varchar join cst_text using(a);
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: cst_varchar.a
+   ->  Nested Loop
+         Output: cst_varchar.a
+         Join Filter: ((cst_varchar.a)::text = cst_text.a)
+         ->  Seq Scan on public.cst_varchar
+               Output: cst_varchar.a
+         ->  Materialize
+               Output: cst_text.a
+               ->  Seq Scan on public.cst_text
+                     Output: cst_text.a
+ Optimizer: Postgres-based planner
+ Settings: enable_hashjoin = 'off', enable_nestloop = 'on', optimizer = 'off', optimizer_enable_hashjoin = 'off', optimizer_enable_mergejoin = 'off'
+(13 rows)
+
+select * from cst_varchar join cst_text using(a);
+ a  
+----
+ 9
+ 10
+ 11
+ 12
+ 13
+ 14
+ 7
+ 5
+ 6
+ 8
+ 15
+(11 rows)
+
 drop table cst_int2;
 drop table cst_int4;
 drop table cst_int8;

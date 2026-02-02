@@ -10,23 +10,18 @@ create index zoo_idx_ab on zoo(b,a);
 set optimizer_enable_hashjoin=off;
 
 explain select * from foo left join bar on foo.a = bar.a and foo.b = bar.b left join zoo on zoo.a=foo.a and zoo.b=foo.b;
-                                       QUERY PLAN
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1295.00 rows=3 width=48)
-   ->  Nested Loop Left Join  (cost=0.00..1295.00 rows=1 width=48)
+                                     QUERY PLAN
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1324044.91 rows=3 width=48)
+   ->  Nested Loop Left Join  (cost=0.00..1324044.91 rows=1 width=48)
          Join Filter: true
-         ->  Nested Loop Left Join  (cost=0.00..433.00 rows=1 width=32)
-               Join Filter: true
-               ->  Table Scan on foo  (cost=0.00..431.00 rows=1 width=16)
-               ->  Index Scan using bar_idx_ab on bar  (cost=0.00..2.00 rows=1 width=16)
-                     Index Cond: bar.b = foo.b AND bar.a::text = foo.a::text
-         ->  Bitmap Table Scan on zoo  (cost=0.00..862.00 rows=1 width=16)
-               Recheck Cond: zoo.a::text = foo.a::text AND zoo.b = foo.b
-               ->  Bitmap Index Scan on zoo_idx_ab  (cost=0.00..0.00 rows=0 width=0)
-                     Index Cond: zoo.b = foo.b AND zoo.a::text = foo.a::text
- Settings:  enable_nestloop=on; optimizer=on
- Optimizer status: PQO version 2.53.11
-(14 rows)
--->
+         ->  Nested Loop Left Join  (cost=0.00..1324032.91 rows=1 width=32)
+               Join Filter: (((zoo.a)::text = (foo.a)::text) AND (zoo.b = foo.b))
+               ->  Seq Scan on foo  (cost=0.00..431.00 rows=1 width=16)
+               ->  Seq Scan on zoo  (cost=0.00..431.00 rows=1 width=16)
+         ->  Index Scan using bar_idx_ab on bar  (cost=0.00..12.00 rows=1 width=16)
+               Index Cond: ((b = foo.b) AND ((a)::text = (foo.a)::text))
+ Optimizer: GPORCA
+(10 rows)-->
 <dxl:DXLMessage xmlns:dxl="http://greengagedb.org/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
@@ -87,6 +82,24 @@ explain select * from foo left join bar on foo.a = bar.a and foo.b = bar.b left 
         <dxl:MaxAgg Mdid="0.2116.1.0"/>
         <dxl:AvgAgg Mdid="0.2101.1.0"/>
         <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsTextRelated="true" IsFixedLength="false" Length="-1" PassByValue="false">
+        <dxl:DistrOpfamily Mdid="0.1995.1.0"/>
+        <dxl:LegacyDistrOpfamily Mdid="0.7105.1.0"/>
+        <dxl:PartOpfamily Mdid="0.1994.1.0"/>
+        <dxl:EqualityOp Mdid="0.98.1.0"/>
+        <dxl:InequalityOp Mdid="0.531.1.0"/>
+        <dxl:LessThanOp Mdid="0.664.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.665.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.666.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.667.1.0"/>
+        <dxl:ComparisonOp Mdid="0.360.1.0"/>
+        <dxl:ArrayType Mdid="0.1009.1.0"/>
+        <dxl:MinAgg Mdid="0.2145.1.0"/>
+        <dxl:MaxAgg Mdid="0.2129.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
