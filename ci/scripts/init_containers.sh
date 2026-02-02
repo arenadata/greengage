@@ -13,6 +13,14 @@ else
   services="$@"
 fi
 
+# Copy /home/gpadmin/.ssh
+for service in $services
+do
+  docker compose -p $project -f ci/docker-compose.yaml exec -T \
+    $service bash -c "cp -rf /home/gpadmin/.ssh. /home/gpadmin/.ssh" &
+done
+wait
+
 # Prepare ALL containers first
 for service in $services
 do
@@ -36,13 +44,5 @@ for service in $services
 do
   docker compose -p $project -f ci/docker-compose.yaml exec -T \
     $service bash -c "for HOST in \"cdw sdw1 sdw2 sdw3 sdw4 sdw5 sdw6\"; do echo \"\$(host \"\$HOST\" | grep 'has address' | head -n 1 | cut -d ' ' -f 4) \$HOST\" >>/etc/hosts; done" &
-done
-wait
-
-# Copy /home/gpadmin/.ssh
-for service in $services
-do
-  docker compose -p $project -f ci/docker-compose.yaml exec -T \
-    $service bash -c "cp -rf /home/gpadmin/.ssh. /home/gpadmin/.ssh" &
 done
 wait
