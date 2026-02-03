@@ -13,12 +13,12 @@ else
   services="$@"
 fi
 
+# Prepare ALL containers first
 for service in $services
 do
   docker compose -p "$project" -f ci/docker-compose.yaml exec -T "$service" bash -exc "
     # Copy /home/gpadmin/.ssh
     cp -rf /home/gpadmin/.ssh.src /home/gpadmin/.ssh;
-    # Prepare ALL containers first
     mkdir -p /data/gpdata;
     chmod -R 777 /data;
     source gpdb_src/concourse/scripts/common.bash;
