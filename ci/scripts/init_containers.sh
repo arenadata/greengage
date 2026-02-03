@@ -17,7 +17,7 @@ fi
 for service in $services
 do
   docker compose -p "$project" -f ci/docker-compose.yaml exec -T "$service" bash -exc "
-    # Copy /home/gpadmin/.ssh
+    # each host should have its own copy of the (initially identical) files in .ssh
     cp -rf /home/gpadmin/.ssh.src /home/gpadmin/.ssh;
     mkdir -p /data/gpdata;
     chmod -R 777 /data;
