@@ -17,7 +17,7 @@ fi
 for service in $services
 do
   docker compose -p $project -f ci/docker-compose.yaml exec -T \
-    $service bash -c "cp -rf /home/gpadmin/.ssh. /home/gpadmin/.ssh" &
+    $service bash -c "cp -rf /home/gpadmin/.ssh.src /home/gpadmin/.ssh" &
 done
 wait
 
