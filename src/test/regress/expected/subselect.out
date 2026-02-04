@@ -1267,7 +1267,6 @@ select enable_xform('CXformImplementInnerJoin');
 -- m/[ ]*\+$/
 -- s/[ ]*\+$/ \+/
 -- end_matchsubs
--- Output DXL plan without unimportant properties.
 select replace ((xpath ('.//Plan', xmlparse(document pg_read_file('minidumps/pretty.xml'))))::text, '          <', '<');
 ERROR:  could not stat file "minidumps/pretty.xml": No such file or directory
 \! rm -rf $MASTER_DATA_DIRECTORY/minidumps
