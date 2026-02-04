@@ -707,6 +707,60 @@ select replace ((xpath ('.//Plan', xmlparse(document pg_read_file('minidumps/pre
 \! rm -rf $MASTER_DATA_DIRECTORY/minidumps
 drop table t1,t2,t3;
 
+-- Test case for a subplan of a quantified subplan, in case ORCA chooses
+-- PhysicalCorrelatedNLJoin transformation instead of PhysicalNLJoin.
+-- Subplan should be inside TextExpr, not Filter node as it leads to
+-- missing attributes.
+-- start_ignore
+drop table if exists t1, t2;
+-- end_ignore
+
+create table t1 (
+    text_t1 text,
+    int_t1 integer
+) DISTRIBUTED BY (int_t1);
+create table t2 (
+    text_t2 text,
+    int_t2 integer
+) DISTRIBUTED BY (int_t2);
+
+insert into t1 select '0', generate_series (0,1);
+insert into t2 select '0', generate_series (0,1);
+insert into t1 select '1', generate_series (0,1);
+
+select disable_xform('CXformImplementInnerJoin');
+set optimizer_trace_fallback=on;
+set optimizer_minidump=always;
+select * from t1 where (select int_t1 from t1 limit 1) not in (select int_t2 from t2 where int_t2 = int_t1 or t1.text_t1 = '0');
+reset optimizer_minidump;
+reset optimizer_trace_fallback;
+select enable_xform('CXformImplementInnerJoin');
+
+-- start_matchsubs
+-- m/[ ]*\+$/
+-- s/[ ]*\+$/ \+/
+-- end_matchsubs
+-- start_ignore
+\! mv $MASTER_DATA_DIRECTORY/minidumps/*.mdp $MASTER_DATA_DIRECTORY/minidumps/dump.mdp
+\! echo "import xml.dom.minidom" > $MASTER_DATA_DIRECTORY/minidumps/script.py
+\! echo "dom = xml.dom.minidom.parse('$MASTER_DATA_DIRECTORY/minidumps/dump.mdp')" >> $MASTER_DATA_DIRECTORY/minidumps/script.py
+\! echo "pretty_xml = dom.toprettyxml(indent='   ')" >> $MASTER_DATA_DIRECTORY/minidumps/script.py
+\! echo "with open('$MASTER_DATA_DIRECTORY/minidumps/pretty.xml', 'w') as file:" >> $MASTER_DATA_DIRECTORY/minidumps/script.py
+\! echo "\tfile.write(pretty_xml)" >> $MASTER_DATA_DIRECTORY/minidumps/script.py
+\! python $MASTER_DATA_DIRECTORY/minidumps/script.py
+\! sed -i '/Cost\|Properties\|ValuesList/d' $MASTER_DATA_DIRECTORY/minidumps/pretty.xml
+\! sed -i 's/TypeMdid=".*"//' $MASTER_DATA_DIRECTORY/minidumps/pretty.xml
+\! sed -i 's/AggMdid=".*"//' $MASTER_DATA_DIRECTORY/minidumps/pretty.xml
+\! sed -i 's/SortOperatorMdid=".*"//' $MASTER_DATA_DIRECTORY/minidumps/pretty.xml
+\! sed -i 's/OperatorMdid=".*"//' $MASTER_DATA_DIRECTORY/minidumps/pretty.xml
+\! sed -i 's/Mdid=".*"//' $MASTER_DATA_DIRECTORY/minidumps/pretty.xml
+\! sed -i 's/dxl://' $MASTER_DATA_DIRECTORY/minidumps/pretty.xml
+-- end_ignore
+
+select replace ((xpath ('.//Plan', xmlparse(document pg_read_file('minidumps/pretty.xml'))))::text, '          <', '<');
+\! rm -rf $MASTER_DATA_DIRECTORY/minidumps
+drop table t1, t2;
+
 -- Test case for subquery, which returns more than one rows
 -- start_ignore
 drop table if exists table1, table2;
