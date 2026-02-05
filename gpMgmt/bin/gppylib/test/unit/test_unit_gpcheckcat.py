@@ -70,7 +70,10 @@ class GpCheckCatTestCase(GpTestCase):
     def test_running_unique_index_violation_check__makes_the_check(self):
         self.subject.runOneCheck('unique_index_violation')
 
-        self.unique_index_violation_check.runCheck.assert_called_with(self.db_connection)
+        self.unique_index_violation_check.runCheck.assert_called()
+        (args, kwargs) = self.unique_index_violation_check.runCheck.call_args
+        wrapper = args[0]
+        self.assertIs(wrapper.db, self.db_connection)
 
     def test_running_unique_index_violation_check__when_no_violations_are_found__passes_the_check(self):
         self.subject.runOneCheck('unique_index_violation')
@@ -114,7 +117,10 @@ class GpCheckCatTestCase(GpTestCase):
 
         self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.db_connection)
 
-        self.leaked_schema_dropper.drop_leaked_schemas.assert_called_once_with(self.db_connection)
+        self.leaked_schema_dropper.drop_leaked_schemas.assert_called_once()
+        (args, kwargs) = self.leaked_schema_dropper.drop_leaked_schemas.call_args
+        wrapper = args[0]
+        self.assertIs(wrapper.db, self.db_connection)
 
     def test_drop_leaked_schemas__when_leaked_schemas_exist__passes_gpcheckcat(self):
         self.leaked_schema_dropper.drop_leaked_schemas.return_value = ['schema1', 'schema2']
@@ -148,7 +154,7 @@ class GpCheckCatTestCase(GpTestCase):
 
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.db_connection.query.return_value.getresult.return_value = [['4.3']]
+        self.db_connection.query.return_value.getresult.return_value = [['6.2']]
         self.db_connection.query.return_value.dictresult.return_value = primaries
 
         testargs = ['some_string','-port 1', '-R foo']
@@ -194,7 +200,10 @@ class GpCheckCatTestCase(GpTestCase):
         self.assertTrue(self.subject.GV.foreignKeyStatus)
         self.subject.setError.assert_any_call(self.subject.ERROR_REMOVE)
         self.foreign_key_check.runCheck.assert_called_once_with(cat_tables)
-        fast_seq_mock.assert_called_once_with(self.db_connection)
+        fast_seq_mock.assert_called_once()
+        (args, kwargs) = fast_seq_mock.call_args
+        wrapper = args[0]
+        self.assertIs(wrapper.db, self.db_connection)
 
     @patch('gpcheckcat.processForeignKeyResult')
     def test_checkForeignKey__with_arg(self, process_foreign_key_mock):
