@@ -52,7 +52,7 @@ def show_all_installed(gphome):
     x = platform.linux_distribution()
     name = x[0].lower()
     if 'ubuntu' in name:
-        return r"dpkg --get-selections --admindir=%s/share/packages/database/deb | awk '{print \$1}'" % gphome
+        return "dpkg --get-selections --admindir=%s/share/packages/database/deb | awk '{print \\$1}'" % gphome
     elif 'centos' in name or 'red hat enterprise linux' in name or 'oracle linux server' in name or 'rocky linux' or 'ol' in name:
         return "rpm -qa --dbpath %s/share/packages/database" % gphome
     else:
@@ -705,10 +705,10 @@ def impl(context, process_name):
 def impl(context):
     # We keep trying to find the gpcreateseg process using ps,grep
     # and when we find it, we want to kill it only after the trap for ERROR_EXIT is setup (hence the sleep 1)
-    command = r"""timeout 10m
+    command = """timeout 10m
     bash -c "while sleep 0.1;
     do if ps ux | grep [g]pcreateseg ;
-    then sleep 1 && ps ux | grep [g]pcreateseg |awk '{print \$2}' | xargs kill ;
+    then sleep 1 && ps ux | grep [g]pcreateseg |awk '{print \\$2}' | xargs kill ;
     break 2; fi; done" """
     run_async_command(context, command)
 
@@ -1664,7 +1664,7 @@ def impl(context, seg):
     elif seg == "master":
         hostname = get_master_hostname()[0][0]
 
-    cmd = Command(name="get bg pid", cmdStr=r"ps ux | grep pid_background_script.py | grep -v grep | awk '{print \$2}'",
+    cmd = Command(name="get bg pid", cmdStr="ps ux | grep pid_background_script.py | grep -v grep | awk '{print \\$2}'",
                   remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
     pids = cmd.get_stdout().splitlines()
@@ -1757,7 +1757,7 @@ def impl(context, seg):
     # This pid is no longer associated with a
     # running process and won't be recycled for long enough that tests
     # have finished.
-    cmd = Command(name="get non-existing pid", cmdStr=r"echo \$\$", remoteHost=hostname, ctxt=REMOTE)
+    cmd = Command(name="get non-existing pid", cmdStr="echo \\$\\$", remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
     pid = cmd.get_results().stdout.strip()
 
@@ -4302,7 +4302,7 @@ def impl(context):
 
      # Update hostfile location
      cmd = Command(name='update master hostname in config file',
-                   cmdStr= r"sed 's/MACHINE_LIST_FILE=.*/MACHINE_LIST_FILE=\/tmp\/hostfile--1/g' -i /tmp/clusterConfigFile-1")
+                   cmdStr= "sed 's/MACHINE_LIST_FILE=.*/MACHINE_LIST_FILE=\\/tmp\\/hostfile--1/g' -i /tmp/clusterConfigFile-1")
      cmd.run(validateAfter=True)
 
 
@@ -4416,7 +4416,7 @@ def impl(context):
        'rsync')
 def impl(context):
 
-    rsync_script = r"""
+    rsync_script = """
 cat >/usr/local/bin/rsync <<EOL
 #!/usr/bin/env bash
 arguments="\$@"

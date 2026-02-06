@@ -113,7 +113,7 @@ WHERE collname != 'C' and collname != 'POSIX' and indexrelid < 16384;
         # print all catalog indexes that might be affected.
         cindex = self.get_affected_catalog_indexes()
         if cindex:
-            print>>f, r"\c ", self.dbname
+            print>>f, "\\c ", self.dbname
         for indexrelid, indexname, tablename, collname, indexdef in cindex:
             print>>f, "-- catalog indexrelid:", indexrelid, "| index name:", indexname, "| table name:", tablename, "| collname:", collname, "| indexdef: ", indexdef
             print>>f, self.handle_one_index(indexname)
@@ -123,7 +123,7 @@ WHERE collname != 'C' and collname != 'POSIX' and indexrelid < 16384;
         for dbname in dblist:
             index = self.get_affected_user_indexes(dbname)
             if index:
-                print>>f, r"\c ", dbname
+                print>>f, "\\c ", dbname
             for indexrelid, indexname, tablename, collname, indexdef in index:
                 print>>f, "-- indexrelid:", indexrelid, "| index name:", indexname, "| table name:", tablename, "| collname:", collname, "| indexdef: ", indexdef
                 print>>f, self.handle_one_index(indexname)
@@ -320,7 +320,7 @@ class CheckTables(connection):
             # dump the table info to the specified output file
             if table_info:
                 print>>f, "-- order table by size in %s order " % 'ascending' if self.order_size_ascend else '-- order table by size in descending order'
-                print>>f, r"\c ", dbname
+                print>>f, "\\c ", dbname
                 print>>f
 
                 # sort the tables by size
@@ -461,8 +461,8 @@ class migrate(connection):
         with open(self.script_file) as f:
             for line in f:
                 sql = line.strip()
-                if sql.startswith(r"\c"):
-                    db_name = sql.split(r"\c")[1].strip()
+                if sql.startswith("\\c"):
+                    db_name = sql.split("\\c")[1].strip()
                 if (sql.startswith("reindex") and sql.endswith(";") and sql.count(";") == 1):
                     self.dbdict[db_name].append(sql)
                 if (sql.startswith("begin;") and sql.endswith("commit;")):
