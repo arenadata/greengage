@@ -1,5 +1,5 @@
 
-from builtins import str
+#from builtins import str
 from builtins import object
 from gppylib.commands.base import REMOTE, WorkerPool
 from gppylib.commands.pg import PgControlData

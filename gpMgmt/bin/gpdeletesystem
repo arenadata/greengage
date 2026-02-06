@@ -5,7 +5,7 @@
 #
 
 # System imports
-from builtins import str
+##from builtins import str
 import os
 import sys
 import signal

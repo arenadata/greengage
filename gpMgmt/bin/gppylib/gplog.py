@@ -25,7 +25,7 @@ Typical usage:
   ...
 
 """
-from builtins import str
+#from builtins import str
 import datetime
 import logging
 import os

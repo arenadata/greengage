@@ -20,7 +20,7 @@ PEXPECT LICENSE
 
 '''
 
-from builtins import str
+#from builtins import str
 from builtins import range
 from pexpect import ExceptionPexpect, TIMEOUT, EOF, spawn
 import time

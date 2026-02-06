@@ -12,7 +12,7 @@
 """
 # ============================================================================
 from past.builtins import cmp
-from builtins import str
+#from builtins import str
 from builtins import object
 import os
 import json

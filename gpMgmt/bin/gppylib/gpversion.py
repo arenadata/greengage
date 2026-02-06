@@ -11,7 +11,7 @@
 # ===========================================================
 from past.builtins import cmp
 from builtins import map
-from builtins import str
+#from builtins import str
 from builtins import object
 import sys, os, re
 import six

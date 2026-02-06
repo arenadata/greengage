@@ -1,4 +1,4 @@
-from builtins import str
+#from builtins import str
 from builtins import range
 from mock import Mock, patch
 

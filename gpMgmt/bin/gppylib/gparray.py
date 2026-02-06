@@ -15,7 +15,7 @@
 
 # ============================================================================
 from past.builtins import cmp
-from builtins import str
+#from builtins import str
 from builtins import range
 from builtins import object
 from datetime import date

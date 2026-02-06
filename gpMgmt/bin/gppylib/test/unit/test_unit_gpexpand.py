@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from builtins import str
+#from builtins import str
 import os
 import imp
 

@@ -34,9 +34,9 @@ Usage: gpcheckperf <options>
 from __future__ import print_function
 from __future__ import division
 
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
+#from future import standard_library
+#standard_library.install_aliases()
+#from builtins import str
 from builtins import range
 from past.utils import old_div
 from builtins import object
@@ -44,6 +44,7 @@ import datetime
 import os
 import sys
 from functools import reduce
+import six
 
 sys.path.append(sys.path[0] + '/lib')
 try:
@@ -473,7 +474,7 @@ def copyExecOver(fname):
 
 def parseMultiDDResult(out):
     # parse output of "time -p"
-    out = io.StringIO(str(out))
+    out = io.StringIO(six.u(out))
     result = {}
     bytes = 0
     for line in out:
@@ -549,7 +550,7 @@ def runStreamTest():
     (ok, out) = gpssh(cmd, GV.opt['-V'])
     if not ok:
         sys.exit('[Error] command failed: %s with output: %s' % (cmd, out))
-    out = io.StringIO(str(out))
+    out = io.StringIO(six.u(out))
     result = {}
     for line in out:
         i = line.find(']')
@@ -645,7 +646,7 @@ def reapNetperfTest(proc, x, y):
         print('[Warning] netperf failed on %s -> %s' % (x, y))
         return []
 
-    for line in io.StringIO(str(out)):
+    for line in io.StringIO(six.u(out)):
         line = line.split()
         if len(line) != 5:
             continue

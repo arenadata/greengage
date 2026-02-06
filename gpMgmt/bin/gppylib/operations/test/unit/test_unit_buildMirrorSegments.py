@@ -2,8 +2,8 @@
 #
 # Copyright (c) Greenplum Inc 2008. All Rights Reserved.
 #
-from future import standard_library
-standard_library.install_aliases()
+#from future import standard_library
+#standard_library.install_aliases()
 import os
 import re
 from collections import OrderedDict
