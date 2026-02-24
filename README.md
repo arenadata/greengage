@@ -8,6 +8,7 @@ cost-based query optimizer delivering high analytical query
 performance on large data volumes.
 
 The Greengage project is released under the [Apache 2
+
 license](http://www.apache.org/licenses/LICENSE-2.0). We want to thank
 all our past and present community contributors and are really interested in
 all new potential contributions. For the Greengage Database community
