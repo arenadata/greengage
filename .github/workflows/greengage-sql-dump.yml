@@ -68,6 +68,13 @@ jobs:
               ;;
           esac
 
+      - name: Restore & Load SHA image
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v19
+        with:
+          version: ${{ inputs.version }}
+          target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
+
       - name: Create SQL Dump via regression tests
         uses: greengagedb/greengage-ci/.github/actions/tests/regression@v16
         with:
