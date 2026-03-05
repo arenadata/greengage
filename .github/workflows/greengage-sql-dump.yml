@@ -7,7 +7,6 @@ on:
     types: [completed]
     branches:
       - main
-      - 6.x
       - 7.x
 
 jobs:
@@ -71,9 +70,8 @@ jobs:
       - name: Restore & Load SHA image
         uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v19
         with:
-          version: ${{ inputs.version }}
-          target_os: ${{ inputs.target_os }}
-          target_os_version: ${{ inputs.target_os_version }}
+          version: ${{ steps.version.outputs.version }}
+          target_os: ${{ matrix.target_os }}
 
       - name: Create SQL Dump via regression tests
         uses: greengagedb/greengage-ci/.github/actions/tests/regression@v16
