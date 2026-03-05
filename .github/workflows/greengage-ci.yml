@@ -64,18 +64,15 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        include:
-          - target_os: ubuntu
-            target_os_version: "22.04"
+        target_os: [ubuntu]
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
       actions: write  # Required for artifact upload
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v25
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v19
     with:
       version: 6
       target_os: ${{ matrix.target_os }}
-      target_os_version: ${{ matrix.target_os_version }}
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 
