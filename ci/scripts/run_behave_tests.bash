@@ -64,7 +64,9 @@ run_feature() {
     done
   fi
 
-  docker compose -p $project -f "$docker_compose_path" --env-file ci/.env down -v
+  if [[ -z $CI ]]; then
+    docker compose -p $project -f "$docker_compose_path" --env-file ci/.env down -v
+  fi
 
   if [[ $status -gt 0 ]]; then echo "Feature $feature failed with exit code $status"; fi
   exit $status
