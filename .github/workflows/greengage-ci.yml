@@ -14,24 +14,24 @@ concurrency:
   cancel-in-progress: true  # Automatically cancel any previous runs for the same group
 
 jobs:
-  # build:
-  #   strategy:
-  #     fail-fast: true  # Stop on any failure in the matrix
-  #     matrix:
-  #       target_os: [ubuntu]
-  #   permissions:
-  #     contents: read  # Explicit for default behavior
-  #     packages: write # Required for GHCR access
-  #     actions: write  # Required for artifact upload
-  #   uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@CI-5283
-  #   with:
-  #     version: 6
-  #     target_os: ${{ matrix.target_os }}
-  #   secrets:
-  #     ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    strategy:
+      fail-fast: true  # Stop on any failure in the matrix
+      matrix:
+        target_os: [ubuntu]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: write # Required for GHCR access
+      actions: write  # Required for artifact upload
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@CI-5283
+    with:
+      version: 6
+      target_os: ${{ matrix.target_os }}
+    secrets:
+      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 
   behave-tests:
-    # needs: build  # Wait for build to complete
+    needs: build  # Wait for build to complete
     if: github.event_name == 'pull_request'  # Only for PR
     strategy:
       fail-fast: true
@@ -49,7 +49,7 @@ jobs:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 
   regression-tests:
-    # needs: build
+    needs: build
     if: github.event_name == 'pull_request'  # Only for PR
     strategy:
       fail-fast: true
@@ -67,7 +67,7 @@ jobs:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 
   orca-tests:
-    # needs: build
+    needs: build
     if: github.event_name == 'pull_request'  # Only for PR
     strategy:
       fail-fast: true
@@ -85,7 +85,7 @@ jobs:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 
   resgroup-tests:
-    # needs: build
+    needs: build
     if: github.event_name == 'pull_request'  # Only for PR
     strategy:
       fail-fast: true
@@ -104,7 +104,7 @@ jobs:
 
   upload:
     if: github.event_name == 'push'
-    # needs: build
+    needs: build
     strategy:
       fail-fast: true
       matrix:
@@ -124,7 +124,7 @@ jobs:
 
   # Rebuild prod-redy version without debug extensions and pack it to deb
   package:
-    # needs: build
+    needs: build
     strategy:
       fail-fast: false
       matrix:
