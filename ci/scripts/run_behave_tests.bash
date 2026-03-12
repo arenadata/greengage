@@ -91,4 +91,5 @@ for pid in $pids
     wait $pid
     exits=$((exits + $?))
   done
+docker ps
 if [[ $exits > 0 ]]; then exit 1; fi
