@@ -83,5 +83,4 @@ for pid in $pids
     wait $pid
     exits=$((exits + $?))
   done
-
 if [[ $exits > 0 ]]; then exit 1; fi
