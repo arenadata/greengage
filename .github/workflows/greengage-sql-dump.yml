@@ -69,7 +69,7 @@ jobs:
           esac
 
       - name: Create SQL Dump via regression tests
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v16
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-5283
         with:
           image: ghcr.io/${{ github.repository }}/ggdb${{ steps.version.outputs.version }}_${{ matrix.target_os }}:${{ github.event.workflow_run.head_sha }}
           optimizer: postgres
@@ -80,5 +80,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sqldump_ggdb${{ steps.version.outputs.version }}_${{ matrix.target_os }}
-          path: /mnt/logs/${{ matrix.target_os }}_postgres_sqldump.tar
+          path: /mnt/logs/${{ matrix.target_os }}${{ matrix.target_os_version }}_postgres_sqldump.tar
           if-no-files-found: error
