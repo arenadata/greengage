@@ -11,10 +11,6 @@ COPY gpMgmt/bin/gpload_test/pytest_requirement.txt ./
 RUN set -eux; \
     ./README.ubuntu.bash; \
     rm README.ubuntu.bash; \
-    wget https://github.com/uaqq/test/releases/download/1.2.3/sigar-headers_1.6.5-4618+git2932df5_all.deb; \
-    wget https://github.com/uaqq/test/releases/download/1.2.3/sigar_1.6.5-4618+git2932df5_all.deb; \
-    apt install -y ./*.deb; \
-    rm ./*.deb; \
 # Set Python 2 as default when needed
     test "$(lsb_release -sr)" == "22.04" && ln -s python2 /usr/bin/python; \
 # Install pg_bsd_indent used by pgindent utility

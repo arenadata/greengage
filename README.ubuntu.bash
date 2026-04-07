@@ -1,6 +1,11 @@
 #!/bin/bash
 # Some packages, for example KRB5, not installing properly without this option
 export DEBIAN_FRONTEND=noninteractive
+
+sigar_package='sigar_1.6.5-4618+git2932df5_all.deb'
+sigar_headers_package='sigar-headers_1.6.5-4618+git2932df5_all.deb'
+sigar_release_url='https://github.com/GreengageDB/greengage-ci/releases/download/1.6.5'
+
 apt-get update
 apt-get install -y \
   bison \
@@ -47,6 +52,10 @@ apt-get install -y \
   rsync \
   sudo \
   zlib1g-dev
+
+wget ${sigar_release_url}/${sigar_package} ${sigar_release_url}/${sigar_headers_package}
+apt install -y ./${sigar_headers_package} ./${sigar_package}
+rm ${sigar_headers_package} ${sigar_package}
 
 if [ "$(lsb_release -si)" == "Ubuntu" ] && [ "$(lsb_release -sr)" == "22.04" ]; then
   apt-get install -y \
