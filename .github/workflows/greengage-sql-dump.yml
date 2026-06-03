@@ -70,11 +70,11 @@ jobs:
 
       - name: Maximize disk space
         if: steps.image-pull.outcome == 'success'
-        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@CI-5791
 
       - name: Create SQL Dump via regression tests
         if: steps.image-pull.outcome == 'success'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-5791
         with:
           image: ${{ env.IMAGE }}
           optimizer: postgres
